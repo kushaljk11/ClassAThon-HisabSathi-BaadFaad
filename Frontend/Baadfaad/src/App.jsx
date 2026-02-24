@@ -12,6 +12,7 @@ import SplitBreakdown from './pages/split/SplitBreakdown'
 import SplitCalculated from './pages/split/SplitCalculated'
 import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
+import Login from './pages/Auth/Login'
 
 function App() {
   return (
@@ -30,6 +31,8 @@ function App() {
           <Route path="/split/calculated" element={<SplitCalculated />} />
           <Route path="/group" element={<Nudge />} />
           <Route path="/group/details" element={<Group />} />
+          <Route path="/login" element={<Login />} />
+
         </Routes>
       </Router>
     </>
