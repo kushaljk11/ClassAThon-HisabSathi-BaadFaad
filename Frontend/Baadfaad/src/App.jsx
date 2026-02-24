@@ -5,6 +5,7 @@ import AboutUs from './pages/landing/AboutUs'
 import Contact from './pages/landing/Contact'
 import Home from './pages/dashboard/Home'
 import CreateSplit from './pages/split/CreateSplit'
+import ScanBill from './pages/split/ScanBill'
 import ReadyToSplit from './pages/split/ReadyToSplit'
 import JoinedParticipants from './pages/split/JoinedParticipants'
 
@@ -18,6 +19,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<Home />} />
           <Route path="/split/create" element={<CreateSplit />} />
+          <Route path="/split/scan" element={<ScanBill />} />
           <Route path="/split/ready" element={<ReadyToSplit />} />
           <Route path="/split/joined" element={<JoinedParticipants />} />
         </Routes>
