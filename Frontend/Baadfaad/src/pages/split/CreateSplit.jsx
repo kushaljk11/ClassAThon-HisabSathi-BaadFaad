@@ -1,7 +1,15 @@
+import { useNavigate } from "react-router-dom";
+import SideBar from "../../components/layout/dashboard/SideBar";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import { FaReceipt, FaQrcode } from "react-icons/fa";
 
 export default function CreateSplit() {
+  const navigate = useNavigate();
+
+  const handleCreateSession = () => {
+    navigate("/split/scan");
+  };
+
   return (
     <div className="flex min-h-screen bg-zinc-50">
       <SideBar />
@@ -49,6 +57,7 @@ export default function CreateSplit() {
               <div className="space-y-3">
                 <button
                   type="button"
+                  onClick={handleCreateSession}
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
                 >
                   <FaQrcode className="text-lg" />
@@ -57,6 +66,7 @@ export default function CreateSplit() {
 
                 <button
                   type="button"
+                  onClick={handleCreateSession}
                   className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50"
                 >
                   <FaQrcode className="text-lg" />
