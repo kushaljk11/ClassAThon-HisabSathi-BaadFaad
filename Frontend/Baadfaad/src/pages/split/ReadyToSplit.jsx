@@ -1,4 +1,4 @@
-import SideBar from "../../components/layout/dashboard/SideBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
 import { FaArrowRight, FaCopy, FaQrcode } from "react-icons/fa";
 
 export default function ReadyToSplit() {
