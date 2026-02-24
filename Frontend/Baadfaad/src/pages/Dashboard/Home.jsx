@@ -49,7 +49,7 @@ export default function Home() {
     <div className="flex min-h-screen bg-zinc-100">
       <SideBar />
 
-      <main className="ml-64 flex-1 p-6 md:p-8">
+      <main className="ml-0 flex-1 p-6 md:ml-56 md:p-8">
         <div className="rounded-4xl bg-linear-to-r from-emerald-900 via-teal-900 to-slate-900 px-8 py-10 text-white shadow-xl">
           <h1 className="text-4xl font-bold">Start New Split</h1>
           <p className="mt-4 max-w-2xl text-lg text-slate-200">

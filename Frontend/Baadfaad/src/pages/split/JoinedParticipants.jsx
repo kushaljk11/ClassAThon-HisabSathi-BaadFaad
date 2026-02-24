@@ -48,7 +48,7 @@ export default function SessionLobby() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SideBar />
-      <main className="ml-64 flex-1 px-10 py-6">
+      <main className="ml-0 flex-1 px-10 py-6 md:ml-56">
         <div className="mx-auto ">
           {/* Header Section */}
           <div className="mb-6">

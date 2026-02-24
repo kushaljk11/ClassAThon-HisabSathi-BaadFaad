@@ -9,6 +9,7 @@ import ScanBill from './pages/split/ScanBill'
 import ReadyToSplit from './pages/split/ReadyToSplit'
 import JoinedParticipants from './pages/split/JoinedParticipants'
 import SplitBreakdown from './pages/split/SplitBreakdown'
+import SplitCalculated from './pages/split/SplitCalculated'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/split/ready" element={<ReadyToSplit />} />
           <Route path="/split/joined" element={<JoinedParticipants />} />
           <Route path="/split/breakdown" element={<SplitBreakdown />} />
+          <Route path="/split/calculated" element={<SplitCalculated />} />
         </Routes>
       </Router>
     </>

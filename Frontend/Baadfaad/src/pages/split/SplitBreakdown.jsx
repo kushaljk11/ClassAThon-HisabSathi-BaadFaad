@@ -49,13 +49,13 @@ export default function SplitBreakdown() {
     <div className="min-h-screen bg-zinc-100">
       <SideBar />
 
-      <main className="ml-64 mx-auto w-full max-w-6xl px-7 py-8">
+      <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 md:ml-56">
           <h1 className="text-5xl font-bold text-slate-900">Split Breakdown</h1>
           <p className="mt-2 text-sm text-slate-500">
             Detailed breakdown of shared expenses for Weekend Getaway
           </p>
 
-          <section className="mt-6 overflow-hidden rounded-[2rem] border border-emerald-100 bg-white">
+          <section className="mt-6 overflow-hidden rounded-4xl border border-emerald-100 bg-white">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr]">
               <div className="flex items-center justify-center bg-emerald-100 p-8 text-emerald-500">
                 <FaWallet className="text-5xl" />
@@ -80,7 +80,7 @@ export default function SplitBreakdown() {
               {participants.map((person) => (
                 <article
                   key={person.name}
-                  className="rounded-[2rem] border border-emerald-100 bg-white px-5 py-4"
+                  className="rounded-4xl border border-emerald-100 bg-white px-5 py-4"
                 >
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
@@ -115,7 +115,7 @@ export default function SplitBreakdown() {
                         </div>
                       </div>
 
-                      <div className="min-w-[6.5rem]">
+                      <div className="min-w-26">
                         {person.status ? (
                           <>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -144,7 +144,7 @@ export default function SplitBreakdown() {
             </div>
           </section>
 
-          <section className="mt-8 rounded-[2rem] bg-gradient-to-r from-slate-950 to-slate-900 px-6 py-6 text-white">
+          <section className="mt-8 rounded-4xl bg-linear-to-r from-slate-950 to-slate-900 px-6 py-6 text-white">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-3xl font-bold">Almost done!</p>

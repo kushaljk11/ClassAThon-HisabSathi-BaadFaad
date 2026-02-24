@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import { FaReceipt, FaQrcode } from "react-icons/fa";
 
@@ -14,7 +13,7 @@ export default function CreateSplit() {
     <div className="flex min-h-screen bg-zinc-50">
       <SideBar />
       
-      <main className="ml-64 flex-1 px-8 py-8">
+      <main className="ml-0 flex-1 px-8 py-8 md:ml-56">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900">New Split Session</h1>

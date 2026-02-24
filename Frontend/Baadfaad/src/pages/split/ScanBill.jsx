@@ -79,14 +79,14 @@ export default function ScanBill() {
   const hasItems = scannedData || manualItems.length > 0;
 
   const handleContinue = () => {
-    navigate("/split/ready");
+    navigate("/split/calculated");
   };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
       <SideBar />
 
-      <main className="ml-64 flex-1 px-8 py-8">
+      <main className="ml-0 flex-1 px-8 py-8 md:ml-56">
         <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Scan Your Bill</h1>

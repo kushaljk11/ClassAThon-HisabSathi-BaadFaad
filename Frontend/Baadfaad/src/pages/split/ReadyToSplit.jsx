@@ -6,7 +6,7 @@ export default function ReadyToSplit() {
     <div className="flex min-h-screen bg-zinc-50">
       <SideBar />
       
-      <main className="ml-64 flex-1 px-8 py-6">
+      <main className="ml-0 flex-1 px-8 py-6 md:ml-56">
         <div className="mx-auto max-w-xl">
           <div className="mb-6 text-center">
             <h1 className="text-3xl font-bold text-slate-900">Ready to Split!</h1>
