@@ -89,7 +89,7 @@ export default function ScanBill() {
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8">
+      <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
         <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Scan Your Bill</h1>

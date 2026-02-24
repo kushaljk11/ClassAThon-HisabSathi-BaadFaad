@@ -54,7 +54,7 @@ export default function Home() {
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 flex-1 p-6 pt-24 md:ml-56 md:p-8 md:pt-8">
+      <main className="ml-0 flex-1 p-6 pt-24 md:ml-56 md:p-8 md:pt-8 sm:mt-14">
         <div className="rounded-4xl bg-linear-to-r from-emerald-900 via-teal-900 to-slate-900 px-8 py-10 text-white shadow-xl">
           <h1 className="text-4xl font-bold">Start New Split</h1>
           <p className="mt-4 max-w-2xl text-lg text-slate-200">

@@ -91,7 +91,7 @@ export default function SplitCalculated() {
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 flex-1 px-4 py-6 pt-24 md:ml-56 md:px-8 md:pt-8">
+      <main className="ml-0 flex-1 px-4 py-6 pt-24 md:ml-56 md:px-8 md:pt-8 sm:mt-10">
         <div className="mx-auto max-w-5xl">
           {/* Header */}
           <div className="mb-6 flex flex-col items-start gap-4 md:flex-row md:items-start md:justify-between">

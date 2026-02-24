@@ -6,7 +6,7 @@ import {
   FaUserSecret,
 } from "react-icons/fa";
 import SideBar from "../../components/layout/Dashboard/SideBar";
-
+import TopBar from "../../components/layout/Dashboard/TopBar";
 const members = [
   {
     name: "Alex Rivera",
@@ -45,9 +45,10 @@ const members = [
 export default function Nudge() {
   return (
     <div className="min-h-screen bg-zinc-100">
+      <TopBar />
       <SideBar />
 
-      <main className="mx-auto max-w-6xl px-6 py-8 md:ml-56 md:px-8">
+      <main className="mx-auto max-w-6xl px-6 py-8 md:ml-56 md:px-8 md:pt-8 sm:mt-10">
         <section>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">

@@ -54,7 +54,7 @@ export default function SplitBreakdown() {
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 pt-24 md:ml-56 md:pt-8">
+      <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
           <h1 className="text-5xl font-bold text-slate-900">Split Breakdown</h1>
           <p className="mt-2 text-sm text-slate-500">
             Detailed breakdown of shared expenses for Weekend Getaway

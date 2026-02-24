@@ -53,7 +53,7 @@ export default function SessionLobby() {
     <div className="flex min-h-screen bg-slate-50">
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-      <main className="ml-0 flex-1 px-10 py-6 pt-24 md:ml-56 md:pt-6">
+      <main className="ml-0 flex-1 px-10 py-6 pt-24 md:ml-56 md:pt-6  sm:mt-10">
         <div className="mx-auto ">
           {/* Header Section */}
           <div className="mb-6">

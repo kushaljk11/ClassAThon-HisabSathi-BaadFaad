@@ -11,7 +11,7 @@ export default function ReadyToSplit() {
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       
-      <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6">
+      <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12">
         <div className="mx-auto max-w-xl">
           <div className="mb-6 text-center">
             <h1 className="text-3xl font-bold text-slate-900">Ready to Split!</h1>
