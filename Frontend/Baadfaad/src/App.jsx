@@ -6,6 +6,7 @@ import Contact from './pages/landing/Contact'
 import Home from './pages/dashboard/Home'
 import CreateSplit from './pages/split/CreateSplit'
 import ReadyToSplit from './pages/split/ReadyToSplit'
+import JoinedParticipants from './pages/split/JoinedParticipants'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/dashboard" element={<Home />} />
           <Route path="/split/create" element={<CreateSplit />} />
           <Route path="/split/ready" element={<ReadyToSplit />} />
+          <Route path="/split/joined" element={<JoinedParticipants />} />
         </Routes>
       </Router>
     </>
