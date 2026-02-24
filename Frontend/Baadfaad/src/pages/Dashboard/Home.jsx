@@ -9,7 +9,7 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
 
 const recentSplits = [
   {
