@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 import {
   FaFire,
   FaReceipt,
@@ -14,6 +15,7 @@ import khaltiLogo from "../../assets/khalti.png";
 
 export default function SplitCalculated() {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cleanRoundMode, setCleanRoundMode] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("esewa");
   const [tags, setTags] = useState(["Dinner", "Fuel", "Night Out", "Movies", "Travel"]);
@@ -86,9 +88,10 @@ export default function SplitCalculated() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      <SideBar />
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 flex-1 px-4 py-6 md:ml-56 md:px-8 md:py-8">
+      <main className="ml-0 flex-1 px-4 py-6 pt-24 md:ml-56 md:px-8 md:pt-8">
         <div className="mx-auto max-w-5xl">
           {/* Header */}
           <div className="mb-6 flex flex-col items-start gap-4 md:flex-row md:items-start md:justify-between">

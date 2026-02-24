@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash } from "react-icons/fa";
 
 export default function ScanBill() {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [scannedData, setScannedData] = useState(null);
@@ -84,9 +86,10 @@ export default function ScanBill() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      <SideBar />
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 flex-1 px-8 py-8 md:ml-56">
+      <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8">
         <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Scan Your Bill</h1>

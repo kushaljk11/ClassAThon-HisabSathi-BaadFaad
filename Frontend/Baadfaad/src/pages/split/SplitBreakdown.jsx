@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { FaCheckCircle, FaRegPaperPlane, FaWallet } from "react-icons/fa";
-import SideBar from "../../components/layout/Dashboard/SideBar";
+import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 
 const participants = [
   {
@@ -45,11 +47,14 @@ const participants = [
 ];
 
 export default function SplitBreakdown() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-zinc-100">
-      <SideBar />
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 md:ml-56">
+      <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 pt-24 md:ml-56 md:pt-8">
           <h1 className="text-5xl font-bold text-slate-900">Split Breakdown</h1>
           <p className="mt-2 text-sm text-slate-500">
             Detailed breakdown of shared expenses for Weekend Getaway

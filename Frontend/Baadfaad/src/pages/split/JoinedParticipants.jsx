@@ -1,6 +1,10 @@
-import SideBar from "../../components/layout/Dashboard/SideBar";
+import { useState } from "react";
+import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 
 export default function SessionLobby() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Mock data matching the participant list in the screenshot
   const participants = [
     {
@@ -47,8 +51,9 @@ export default function SessionLobby() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <SideBar />
-      <main className="ml-0 flex-1 px-10 py-6 md:ml-56">
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <main className="ml-0 flex-1 px-10 py-6 pt-24 md:ml-56 md:pt-6">
         <div className="mx-auto ">
           {/* Header Section */}
           <div className="mb-6">

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SideBar from "../../components/layout/Dashboard/SideBar";
+import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaReceipt, FaQrcode } from "react-icons/fa";
 
 export default function CreateSplit() {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleCreateSession = () => {
     navigate("/split/scan");
@@ -11,9 +14,10 @@ export default function CreateSplit() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      <SideBar />
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       
-      <main className="ml-0 flex-1 px-8 py-8 md:ml-56">
+      <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900">New Split Session</h1>
