@@ -1,8 +1,8 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Landing from './pages/Landing'
-import AboutUs from './pages/AboutUs'
-import Contact from './pages/Contact'
+import Landing from './pages/landing/Landing'
+import AboutUs from './pages/landing/AboutUs'
+import Contact from './pages/landing/Contact'
 
 function App() {
   return (

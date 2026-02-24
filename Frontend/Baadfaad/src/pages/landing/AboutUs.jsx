@@ -1,6 +1,6 @@
 import { FaArrowRight, FaCheckCircle } from "react-icons/fa";
-import Footer from "../components/layout/Footer";
-import Topbar from "../components/layout/Topbar";
+import Footer from "../../components/layout/landing/Footer";
+import Topbar from "../../components/layout/landing/Topbar";
 
 const teamMembers = [
   { name: "Kushal Jamarkattel", role: "Team Lead & Frontend", initials: "JK" },
@@ -24,9 +24,12 @@ export default function AboutUs() {
               </span>
 
               <h1 className="mt-6 text-5xl font-bold leading-tight text-slate-900 sm:text-6xl">
-                Built by <span className="text-emerald-400">Students.</span>
+                Built by 
                 <br />
-                For Real Tables.
+                <span className="text-emerald-400">Students.</span>
+                <br />
+                For Real <br />
+                <span className="text-emerald-400"></span>Tables.
               </h1>
 
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-500">
@@ -44,14 +47,14 @@ export default function AboutUs() {
             </div>
 
             <div className="justify-self-center lg:justify-self-end">
-              <div className="relative aspect-[16/9] w-full max-w-2xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-zinc-100 to-indigo-100 p-4">
+              <div className="relative aspect-video w-full max-w-2xl overflow-hidden rounded-4xl bg-linear-to-br from-emerald-100 via-zinc-100 to-indigo-100 p-4">
                 <div className="relative h-full overflow-hidden rounded-[1.4rem]">
                   <img
                     src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80"
                     alt="Students collaborating at a table"
                     className="h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/55 via-white/45 to-indigo-100/65" />
+                  <div className="absolute inset-0 bg-linear-to-br from-emerald-100/55 via-white/45 to-indigo-100/65" />
 
                   <div className="absolute bottom-4 left-4 right-4 rounded-[1.3rem] bg-white/95 p-4 shadow-lg">
                     <div className="absolute bottom-6 left-0 top-6 w-1 rounded-full bg-emerald-400" />
@@ -121,7 +124,7 @@ export default function AboutUs() {
             <div className="mt-9 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
               {teamMembers.map((member, index) => (
                 <article key={member.name} className="text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-900 text-sm font-bold text-white shadow">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-slate-700 to-slate-900 text-sm font-bold text-white shadow">
                     {member.initials}
                   </div>
                   <h3 className="mt-3 text-sm font-bold text-slate-900">
@@ -139,7 +142,7 @@ export default function AboutUs() {
             </div>
           </section>
 
-          <section className="mt-16 rounded-[2rem] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-8 py-12 text-center shadow-xl">
+          <section className="mt-16 rounded-4xl bg-linear-to-r from-slate-950 via-slate-900 to-indigo-950 px-8 py-12 text-center shadow-xl">
             <h2 className="text-4xl font-bold text-white">
               Ready to split smarter?
             </h2>

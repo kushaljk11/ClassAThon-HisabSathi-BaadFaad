@@ -5,12 +5,12 @@ import {
   FaInstagram,
   FaWhatsapp,
 } from "react-icons/fa";
-import Footer from "../components/layout/Footer";
-import Topbar from "../components/layout/Topbar";
+import Footer from "../../components/layout/landing/Footer";
+import Topbar from "../../components/layout/landing/Topbar";
 
 export default function Contact() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-zinc-50 to-violet-50 text-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-emerald-50 via-zinc-50 to-violet-50 text-slate-900">
       <Topbar />
 
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 pb-6 pt-8 sm:px-10">
@@ -24,7 +24,7 @@ export default function Contact() {
             <h1 className="mt-6 text-6xl font-bold leading-tight text-slate-950">
               Let&apos;s talk
               <br />
-              <span className="text-emerald-400">shop.</span>
+              <span className="text-emerald-400">asap.</span>
             </h1>
 
             <p className="mt-6 max-w-md text-2xl leading-relaxed text-slate-500">
@@ -44,7 +44,7 @@ export default function Contact() {
                   <span className="block text-xs font-bold tracking-wide text-emerald-900/70">
                     DIRECT LINE
                   </span>
-                  <span className="text-3xl font-bold text-slate-900">
+                  <span className="text-3xl font-bold text-white">
                     Ping us on WhatsApp
                   </span>
                 </span>
@@ -61,7 +61,7 @@ export default function Contact() {
                   EMAIL SUPPORT
                 </span>
                 <span className="text-2xl font-semibold text-slate-900">
-                  hello@baadfaad.com
+                  contact@baadfaad.com
                 </span>
               </span>
             </div>
@@ -91,7 +91,7 @@ export default function Contact() {
             </div>
           </section>
 
-          <section className="rounded-[2rem] bg-white p-8 shadow-sm sm:p-10">
+          <section className="rounded-4xl bg-white p-8 shadow-sm sm:p-10">
             <form className="space-y-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-500">
@@ -128,7 +128,7 @@ export default function Contact() {
 
               <button
                 type="submit"
-                className="mt-3 w-full rounded-full bg-gradient-to-r from-emerald-950 to-slate-900 px-8 py-5 text-lg font-bold text-white shadow-lg"
+                className="mt-3 w-full rounded-full bg-linear-to-r from-emerald-950 to-slate-900 px-8 py-5 text-lg font-bold text-white shadow-lg"
               >
                 Send Message <span className="text-emerald-300">&gt;</span>
               </button>

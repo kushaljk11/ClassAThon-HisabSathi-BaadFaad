@@ -1,5 +1,5 @@
-import Footer from "../components/layout/Footer";
-import Topbar from "../components/layout/Topbar";
+import Footer from "../../components/layout/landing/Footer";
+import Topbar from "../../components/layout/landing/Topbar";
 import {
   FaArrowRight,
   FaBars,
@@ -19,8 +19,8 @@ import {
   FaUsers,
   FaWallet,
 } from "react-icons/fa";
-import esewaLogo from "../assets/esewa.png";
-import khaltiLogo from "../assets/khalti.png";
+import esewaLogo from "../../assets/esewa.png";
+import khaltiLogo from "../../assets/khalti.png";
 
 export default function Landing() {
   return (
@@ -128,19 +128,20 @@ export default function Landing() {
       </main>
 
       {/* Awakward section */}
-      <section className="mx-auto mt-24 w-full  bg-white px-6 py-10 sm:px-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-4xl">
-            The 10-Minute Awkward Ritual
-          </h2>
-          <p className="mt-4 text-xl text-slate-500">
-            We&apos;ve all been there. The dinner is over, but the headache is
-            just starting.
-          </p>
-        </div>
+      <section className="mx-auto mt-24 w-full bg-white px-6 py-10 sm:px-8 lg:px-16">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-4xl">
+              The 10-Minute Awkward Ritual
+            </h2>
+            <p className="mt-4 text-xl text-slate-500">
+              We&apos;ve all been there. The dinner is over, but the headache is
+              just starting.
+            </p>
+          </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <article className="rounded-4xl bg-zinc-200 p-8">
+          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <article className="rounded-4xl bg-zinc-200 p-8">
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-red-400">
               <FaCalculator className="text-xl" />
             </div>
@@ -151,9 +152,9 @@ export default function Landing() {
               Calculating VAT and Service Charge while everyone stares at you.
               Stop the mental gymnastics.
             </p>
-          </article>
+            </article>
 
-          <article className="rounded-4xl bg-zinc-200 p-8">
+            <article className="rounded-4xl bg-zinc-200 p-8">
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-orange-400">
               <FaWallet className="text-xl" />
             </div>
@@ -164,9 +165,9 @@ export default function Landing() {
               The person who paid shouldn&apos;t be the one chasing everyone for
               weeks. Balance the scales automatically.
             </p>
-          </article>
+            </article>
 
-          <article className="rounded-4xl bg-zinc-200 p-8">
+            <article className="rounded-4xl bg-zinc-200 p-8">
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-blue-400">
               <FaExchangeAlt className="text-xl" />
             </div>
@@ -177,7 +178,8 @@ export default function Landing() {
               &rdquo;Ma sanga 7 rupaiya chaina, 10 pathaidinxu hai?&rdquo; No
               more hunting for small change or awkward transfers.
             </p>
-          </article>
+            </article>
+          </div>
         </div>
       </section>
 
