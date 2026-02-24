@@ -182,7 +182,10 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="mx-auto w-full bg-zinc-100 px-6 py-16 sm:px-8 lg:px-16">
+      <section
+        id="features"
+        className="mx-auto w-full bg-zinc-100 px-6 py-16 sm:px-8 lg:px-16"
+      >
         <div className="mx-auto w-full max-w-6xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -286,7 +289,10 @@ export default function Landing() {
       </section>
 
       {/* Steps */}
-      <section className="mx-auto w-full bg-linear-to-r from-slate-950 via-slate-900 to-emerald-950 px-6 py-20 sm:px-8 lg:px-16">
+      <section
+        id="how-it-works"
+        className="mx-auto w-full bg-linear-to-r from-slate-950 via-slate-900 to-emerald-950 px-6 py-20 sm:px-8 lg:px-16"
+      >
         <div className="mx-auto w-full max-w-6xl">
           <div className="text-center">
             <h2 className="text-4xl font-bold text-white sm:text-5xl">
