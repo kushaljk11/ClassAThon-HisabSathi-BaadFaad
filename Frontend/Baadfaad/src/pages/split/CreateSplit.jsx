@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
 import { FaReceipt, FaQrcode } from "react-icons/fa";
 
 export default function CreateSplit() {
