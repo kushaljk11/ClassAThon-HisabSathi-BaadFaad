@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Landing from './pages/landing/Landing'
 import AboutUs from './pages/landing/AboutUs'
 import Contact from './pages/landing/Contact'
-import Home from './pages/Dashboard/Home'
+import Home from './pages/dashboard/Home'
+import CreateSplit from './pages/split/CreateSplit'
+import ReadyToSplit from './pages/split/ReadyToSplit'
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<Home />} />
+          <Route path="/split/create" element={<CreateSplit />} />
+          <Route path="/split/ready" element={<ReadyToSplit />} />
         </Routes>
       </Router>
     </>

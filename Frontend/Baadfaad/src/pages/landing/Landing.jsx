@@ -141,40 +141,40 @@ export default function Landing() {
           </div>
 
           <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <article className="rounded-4xl bg-zinc-200 p-8">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-red-400">
+            <article className="rounded-4xl bg-zinc-100 p-8">
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-white text-red-400">
               <FaCalculator className="text-xl" />
             </div>
             <h3 className="text-2xl font-bold text-slate-900">
               Manual math confusion
             </h3>
-            <p className="mt-4 text-lg leading-relaxed text-slate-500">
+            <p className="mt-4 text-sm leading-relaxed text-slate-500">
               Calculating VAT and Service Charge while everyone stares at you.
               Stop the mental gymnastics.
             </p>
             </article>
 
-            <article className="rounded-4xl bg-zinc-200 p-8">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-orange-400">
+            <article className="rounded-4xl bg-zinc-100 p-8">
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-white text-orange-400">
               <FaWallet className="text-xl" />
             </div>
             <h3 className="text-2xl font-bold text-slate-900">
               One friend always overpays
             </h3>
-            <p className="mt-4 text-lg leading-relaxed text-slate-500">
+            <p className="mt-4 text-sm leading-relaxed text-slate-500">
               The person who paid shouldn&apos;t be the one chasing everyone for
               weeks. Balance the scales automatically.
             </p>
             </article>
 
-            <article className="rounded-4xl bg-zinc-200 p-8">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-blue-400">
+            <article className="rounded-4xl bg-zinc-100 p-8">
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-white text-blue-400">
               <FaExchangeAlt className="text-xl" />
             </div>
             <h3 className="text-2xl font-bold text-slate-900">
               Rs 7 change drama
             </h3>
-            <p className="mt-4 text-lg leading-relaxed text-slate-500">
+            <p className="mt-4 text-sm leading-relaxed text-slate-500">
               &rdquo;Ma sanga 7 rupaiya chaina, 10 pathaidinxu hai?&rdquo; No
               more hunting for small change or awkward transfers.
             </p>
@@ -191,9 +191,9 @@ export default function Landing() {
         <div className="mx-auto w-full max-w-6xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-4xl font-bold text-slate-900 sm:text-5xl">
+              <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">
                 Designed for Real Tables{" "}
-                <FaBolt className="inline text-amber-400" />
+                <FaBolt className="inline text-green-600" />
               </h2>
               <p className="mt-3 text-xl text-slate-500">
                 Features that handle the social complexity of sharing costs.
@@ -213,10 +213,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaQrcode className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Silent Split Mode
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Scan a single QR and everyone joins the room instantly. No
                 typing numbers or search drama.
               </p>
@@ -226,10 +226,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaCalculator className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Smart Guilt Calculator
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Who owes what, with data. See group dynamics and who&apos;s
                 historically the fastest payer.
               </p>
@@ -239,10 +239,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaPlus className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Round-Off Logic
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Automatically rounds to multiples of Rs 10. Fairly rotates who
                 pays the extra 2-3 rupees.
               </p>
@@ -252,10 +252,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaHistory className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Last Time You Paid
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Never forget who covered the last round of chiya. Keeps a
                 running tab for the whole squad.
               </p>
@@ -265,10 +265,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaShieldAlt className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Awkwardness Shield
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Send anonymous reminders to friends who forgot to pay. We play
                 the bad guy, not you.
               </p>
@@ -278,10 +278,10 @@ export default function Landing() {
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
                 <FaUsers className="text-lg" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 Breakup Safe Mode
               </h3>
-              <p className="mt-4 text-lg leading-relaxed text-slate-500">
+              <p className="mt-4 text-sm leading-relaxed text-slate-500">
                 Instantly settle everything and clear the history with one tap.
                 Clean slate for everyone involved.
               </p>
@@ -297,7 +297,7 @@ export default function Landing() {
       >
         <div className="mx-auto w-full max-w-6xl">
           <div className="text-center">
-            <h2 className="text-4xl font-bold text-white sm:text-5xl">
+            <h2 className="text-4xl font-bold text-white sm:text-4xl">
               3 Simple Steps to Harmony
             </h2>
             <p className="mt-4 text-lg text-slate-400">
@@ -312,10 +312,10 @@ export default function Landing() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400 text-4xl font-bold text-slate-950">
                 1
               </div>
-              <h3 className="text-4xl font-bold text-white">
+              <h3 className="text-2xl font-bold text-white">
                 Snap or Enter Bill
               </h3>
-              <p className="mx-auto mt-4 max-w-sm text-lg leading-relaxed text-slate-400">
+              <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
                 Take a photo of the restaurant bill or just type in the total
                 amount manually.
               </p>
@@ -325,8 +325,8 @@ export default function Landing() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400 text-4xl font-bold text-slate-950">
                 2
               </div>
-              <h3 className="text-4xl font-bold text-white">Select Items</h3>
-              <p className="mx-auto mt-4 max-w-sm text-lg leading-relaxed text-slate-400">
+              <h3 className="text-2xl font-bold text-white">Select Items</h3>
+              <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
                 Invite friends via link or QR. Everyone taps the items they
                 actually ate.
               </p>
@@ -336,10 +336,10 @@ export default function Landing() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400 text-4xl font-bold text-slate-950">
                 3
               </div>
-              <h3 className="text-4xl font-bold text-white">
+              <h3 className="text-2xl font-bold text-white">
                 Pay Clean Amount
               </h3>
-              <p className="mx-auto mt-4 max-w-sm text-lg leading-relaxed text-slate-400">
+              <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
                 Pay your exact share instantly via integrated eSewa or Khalti
                 wallets.
               </p>
@@ -348,43 +348,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Payment facilties sections */}
-      <section className="mx-auto w-full bg-zinc-100 px-6 py-12 sm:px-8 lg:px-16">
-        <div className="mx-auto w-full max-w-6xl">
-          <p className="text-center text-sm font-bold tracking-[0.35em] text-slate-500">
-            POWERING INSTANT SETTLEMENTS WITH
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-10 sm:gap-14">
-            <div className="flex items-center gap-3">
-              <img
-                src={esewaLogo}
-                alt="eSewa"
-                className="h-10 w-auto object-contain"
-              />
-              <p>Esewa</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <img
-                src={khaltiLogo}
-                alt="Khalti"
-                className="h-10 w-auto object-contain"
-              />
-              <p>Khalti</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Whatsapp  */}
-      <section className="mx-auto w-full bg-white  px-6 pb-16 pt-4 sm:px-8 lg:px-16">
+      <section className="mx-auto w-full bg-white  px-6 pb-16 pt-16 sm:px-8 lg:px-16">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 rounded-[2.5rem] bg-emerald-100 px-8 py-10 shadow-sm lg:grid-cols-2 lg:px-14 lg:py-14">
           <div>
-            <h2 className="text-5xl font-bold leading-tight text-slate-900 sm:text-6xl">
+            <h2 className="text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
               Ready to kill the awkwardness?
             </h2>
-            <p className="mt-6 max-w-xl text-2xl leading-relaxed text-slate-500">
+            <p className="mt-6 max-w-xl text-xl leading-relaxed text-slate-500">
               Share the split link directly to your WhatsApp group. No more
               &ldquo;Who owes how much?&rdquo; messages at 11 PM.
             </p>
@@ -425,7 +396,7 @@ export default function Landing() {
                   </div>
                   <p className="text-xs text-slate-500">Your Share</p>
                   <div className="mt-1 flex items-center justify-between">
-                    <p className="text-4xl font-bold text-slate-900">Rs. 5633</p>
+                    <p className="text-3xl font-bold text-slate-900">Rs. 5633</p>
                     <button
                       type="button"
                       className="rounded-full bg-emerald-400 px-4 py-1 text-xs font-bold text-white"
@@ -439,6 +410,35 @@ export default function Landing() {
                   Sent just now ✓✓
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Payment facilties sections */}
+      <section className="mx-auto w-full bg-zinc-100 px-6 py-12 sm:px-8 lg:px-16">
+        <div className="mx-auto w-full max-w-6xl">
+          <p className="text-center text-sm font-bold tracking-[0.2em] text-slate-500">
+            POWERING INSTANT SETTLEMENTS WITH
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-10 sm:gap-14">
+            <div className="flex items-center gap-3">
+              <img
+                src={esewaLogo}
+                alt="eSewa"
+                className="h-10 w-auto object-contain"
+              />
+              <p>Esewa</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <img
+                src={khaltiLogo}
+                alt="Khalti"
+                className="h-10 w-auto object-contain"
+              />
+              <p>Khalti</p>
             </div>
           </div>
         </div>

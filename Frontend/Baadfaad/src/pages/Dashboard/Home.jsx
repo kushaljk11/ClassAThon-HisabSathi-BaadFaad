@@ -8,7 +8,8 @@ import {
   FaUtensils,
   FaUsers,
 } from "react-icons/fa";
-import SideBar from "../../components/layout/Dashboard/SideBar";
+import { Link } from "react-router-dom";
+import SideBar from "../../components/layout/dashboard/SideBar";
 
 const recentSplits = [
   {
@@ -48,22 +49,22 @@ export default function Home() {
     <div className="flex min-h-screen bg-zinc-100">
       <SideBar />
 
-      <main className="flex-1 p-6 md:p-8">
-        <div className="rounded-[2rem] bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 px-8 py-10 text-white shadow-xl">
-          <h1 className="text-5xl font-bold">Start New Split</h1>
-          <p className="mt-4 max-w-2xl text-2xl text-slate-200">
+      <main className="ml-64 flex-1 p-6 md:p-8">
+        <div className="rounded-4xl bg-linear-to-r from-emerald-900 via-teal-900 to-slate-900 px-8 py-10 text-white shadow-xl">
+          <h1 className="text-4xl font-bold">Start New Split</h1>
+          <p className="mt-4 max-w-2xl text-lg text-slate-200">
             Split bills with friends in seconds. No more awkward "who owes who"
             conversations.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-lg font-bold text-slate-900"
+            <Link
+              to="/split/create"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-lg font-bold text-white hover:bg-emerald-500 transition"
             >
               <FaPlusCircle />
               Create Split
-            </button>
+            </Link>
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-lg font-semibold text-white backdrop-blur"
@@ -76,7 +77,7 @@ export default function Home() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
-            <section className="rounded-[2rem] border border-zinc-200 bg-white p-6">
+            <section className="rounded-4xl border border-zinc-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-500">
@@ -86,7 +87,7 @@ export default function Home() {
                     <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Last Time You Paid
                     </p>
-                    <p className="text-4xl font-bold text-slate-900">
+                    <p className="text-2xl font-bold text-slate-900">
                       $45.00 for Groceries
                     </p>
                     <p className="text-sm text-slate-400">on October 24th, 2023</p>
@@ -98,14 +99,14 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-zinc-200 bg-white p-6">
+            <section className="rounded-4xl border border-zinc-200 bg-white p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <p className="text-xs font-semibold text-slate-400">
                     Monthly Spending
                   </p>
                   <div className="mt-1 flex items-end gap-3">
-                    <p className="text-5xl font-bold text-slate-900">$1,240.50</p>
+                    <p className="text-3xl font-bold text-slate-900">$1,240.50</p>
                     <span className="text-sm font-bold text-emerald-500">
                       +12%
                     </span>
@@ -133,9 +134,9 @@ export default function Home() {
             </section>
           </div>
 
-          <aside className="rounded-[2rem] border border-zinc-200 bg-white p-6">
+          <aside className="rounded-4xl border border-zinc-200 bg-white p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold text-slate-900">Recent Splits</h2>
+              <h2 className="text-2xl font-bold text-slate-900">Recent Splits</h2>
               <button type="button" className="text-sm font-bold text-emerald-500">
                 View All
               </button>
