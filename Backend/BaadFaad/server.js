@@ -19,7 +19,6 @@ import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
-import authRoutes from './routes/authRoute.js';
 import billRoutes from './routes/bill.routes.js';
 
 
