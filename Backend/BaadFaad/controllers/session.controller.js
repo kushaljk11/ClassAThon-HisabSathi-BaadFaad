@@ -129,41 +129,73 @@ export const joinSession = async (req, res) => {
 
     // Build the participant entry and a duplicate-match filter
     const participantEntry = { joinedAt: new Date() };
-    const dupFilters = [];  // conditions that mean "already joined"
+    const dupFilters = [];
 
     if (userId) {
       participantEntry.user = userId;
+      dupFilters.push({ "participants.user": userId });
+
+      // Populate name/email from User model
+      const userDoc = await User.findById(userId).select("name email");
+      if (userDoc) {
+        participantEntry.name = userDoc.name;
+        participantEntry.email = userDoc.email;
+      }
     } else if (participantId) {
-      console.log("Adding participant to session:", participantId);
       participantEntry.participant = participantId;
       dupFilters.push({ "participants.participant": participantId });
     } else if (name) {
       const Participant = (await import("../models/participant.model.js")).default;
       const newParticipant = await Participant.create({ name, email });
-      console.log("Created anonymous participant:", newParticipant._id);
       participantEntry.participant = newParticipant._id;
       participantEntry.name = newParticipant.name;
       participantEntry.email = newParticipant.email;
-      // New participant, no duplicate possible
     } else {
       return res.status(400).json({ message: "userId, participantId, or name is required" });
     }
 
-    session.participants.push(participantEntry);
-    await session.save();
+    // Atomic push — only add if not already a participant
+    const norClause = dupFilters.length > 0 ? { $nor: dupFilters } : {};
+    const updatedSession = await Session.findOneAndUpdate(
+      { _id: sessionId, ...norClause },
+      { $push: { participants: participantEntry } },
+      { new: true }
+    )
+      .populate("participants.user", "name email")
+      .populate("participants.participant", "name email");
 
-    await session.populate([
-      { path: "participants.user", select: "name email" },
-      { path: "participants.participant", select: "name email" },
-    ]);
+    if (!updatedSession) {
+      // Either session not found or duplicate — return current session
+      const current = await Session.findById(sessionId)
+        .populate("participants.user", "name email")
+        .populate("participants.participant", "name email");
+      return res.status(200).json({
+        message: "Already joined this session",
+        session: current,
+      });
+    }
 
-    console.log("Participant joined successfully");
+    // Flatten participant names for socket payload
+    const flatParticipants = updatedSession.participants.map((p) => ({
+      _id: p._id,
+      name: p.name || p.user?.name || p.participant?.name || "Anonymous",
+      email: p.email || p.user?.email || p.participant?.email || "",
+      joinedAt: p.joinedAt,
+    }));
+
+    // Emit real-time update to everyone in the session room
+    try {
+      getIO().to(sessionId).emit("participant-joined", {
+        participants: flatParticipants,
+        newParticipant: flatParticipants[flatParticipants.length - 1],
+      });
+    } catch {}
+
     return res.status(200).json({
       message: "Joined session successfully",
-      session,
+      session: updatedSession,
     });
   } catch (error) {
-    console.error("Failed to join session:", error.message);
     return res.status(500).json({ message: "Failed to join session", error: error.message });
   }
 };

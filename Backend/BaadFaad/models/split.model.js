@@ -3,6 +3,10 @@ import { SPLIT_TYPE, SPLIT_STATUS } from '../config/constants.js';
 
 const splitSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      default: '',
+    },
     receipt: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Receipt',

@@ -31,6 +31,20 @@ const groupSchema = new mongoose.Schema(
       required: [true, 'Creator is required'],
       index: true,
     },
+    image: {
+      type: String,
+      default: '',
+    },
+    splitId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Split',
+      default: null,
+    },
+    sessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Session',
+      default: null,
+    },
     qrCode: {
       type: String,
       default: '',

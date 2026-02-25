@@ -12,7 +12,7 @@ import { SPLIT_STATUS } from '../config/constants.js';
 // @access  Private
 export const createSplit = async (req, res) => {
   try {
-    const { receiptId, splitType, breakdown, participants: bodyParticipants } = req.body;
+    const { receiptId, splitType, breakdown, participants: bodyParticipants, name } = req.body;
 
     // Receipt is optional — if provided, look it up for totalAmount
     let receipt = null;
@@ -50,6 +50,7 @@ export const createSplit = async (req, res) => {
 
     // Create split
     const split = await Split.create({
+      name: name || '',
       receipt: receiptId || undefined,
       splitType: splitType || 'equal',
       breakdown: calculatedBreakdown,
@@ -89,10 +90,43 @@ export const getSplitById = async (req, res) => {
 // @access  Private
 export const getAllSplits = async (req, res) => {
   try {
-    const splits = await Split.find()
+    const { userId } = req.query;
+    let filter = {};
+
+    // If userId is provided, only return splits the user is part of
+    if (userId) {
+      // Find all sessions where this user is a participant
+      const sessions = await Session.find({ 'participants.user': userId }).select('splitId name').lean();
+      const splitIds = sessions.map((s) => s.splitId).filter(Boolean);
+
+      // Also check breakdown.user directly on splits (for standalone splits)
+      const directSplits = await Split.find({ 'breakdown.user': userId }).select('_id').lean();
+      const directIds = directSplits.map((s) => s._id);
+
+      const allIds = [...new Set([...splitIds.map(String), ...directIds.map(String)])];
+      filter._id = { $in: allIds };
+    }
+
+    const splits = await Split.find(filter)
       .populate('receipt')
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(20)
+      .lean();
+
+    // Attach session name to each split for display
+    if (splits.length > 0) {
+      const splitIdsForSessions = splits.map((s) => s._id);
+      const sessions = await Session.find({ splitId: { $in: splitIdsForSessions } })
+        .select('splitId name')
+        .lean();
+      const sessionMap = {};
+      for (const sess of sessions) {
+        sessionMap[String(sess.splitId)] = sess.name;
+      }
+      for (const s of splits) {
+        s.sessionName = sessionMap[String(s._id)] || '';
+      }
+    }
 
     sendResponse(res, 200, true, 'Splits fetched successfully', { splits });
   } catch (error) {
