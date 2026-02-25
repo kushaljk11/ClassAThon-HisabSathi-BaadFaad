@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
-dotenv.config({ path: '.env.example' });
+dotenv.config({ path: '.env' });
 
 const requiredEnvVars = ["EMAIL_USER", "EMAIL_PASS"];
 
