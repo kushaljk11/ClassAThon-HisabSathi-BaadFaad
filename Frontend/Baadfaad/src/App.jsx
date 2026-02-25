@@ -12,10 +12,14 @@ import SplitBreakdown from './pages/split/SplitBreakdown'
 import SplitCalculated from './pages/split/SplitCalculated'
 import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
+import Login from './pages/Auth/Login'
+import AuthCallback from './pages/Auth/AuthCallback'
+import { AuthProvider } from './context/authContext'
 
 function App() {
   return (
     <>
+      <AuthProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -30,8 +34,11 @@ function App() {
           <Route path="/split/calculated" element={<SplitCalculated />} />
           <Route path="/group" element={<Nudge />} />
           <Route path="/group/details" element={<Group />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </Router>
+      </AuthProvider>
     </>
   )
 }
