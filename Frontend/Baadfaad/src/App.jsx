@@ -14,33 +14,53 @@ import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
 import Login from './pages/Auth/Login'
 import AuthCallback from './pages/Auth/AuthCallback'
-import { AuthProvider } from './context/authContext'
+import { AuthProvider, useAuth } from './context/authContext'
+import ProtectedRoute from './components/common/ProtectedRoute'
+import PublicRoute from './components/common/PublicRoute'
+import Loader from './components/common/Loader'
+
+function AppContent() {
+  const { isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <Loader className="size-10 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
+  return (
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        
+        {/* Protected Routes - Require Authentication */}
+        <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/split/create" element={<ProtectedRoute><CreateSplit /></ProtectedRoute>} />
+        <Route path="/split/scan" element={<ProtectedRoute><ScanBill /></ProtectedRoute>} />
+        <Route path="/split/ready" element={<ProtectedRoute><ReadyToSplit /></ProtectedRoute>} />
+        <Route path="/split/joined" element={<ProtectedRoute><JoinedParticipants /></ProtectedRoute>} />
+        <Route path="/split/breakdown" element={<ProtectedRoute><SplitBreakdown /></ProtectedRoute>} />
+        <Route path="/split/calculated" element={<ProtectedRoute><SplitCalculated /></ProtectedRoute>} />
+        <Route path="/group" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
+        <Route path="/group/details" element={<ProtectedRoute><Group /></ProtectedRoute>} />
+      </Routes>
+    </Router>
+  );
+}
 
 function App() {
   return (
-    <>
-      <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/dashboard" element={<Home />} />
-          <Route path="/split/create" element={<CreateSplit />} />
-          <Route path="/split/scan" element={<ScanBill />} />
-          <Route path="/split/ready" element={<ReadyToSplit />} />
-          <Route path="/split/joined" element={<JoinedParticipants />} />
-          <Route path="/split/breakdown" element={<SplitBreakdown />} />
-          <Route path="/split/calculated" element={<SplitCalculated />} />
-          <Route path="/group" element={<Nudge />} />
-          <Route path="/group/details" element={<Group />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-        </Routes>
-      </Router>
-      </AuthProvider>
-    </>
-  )
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
 export default App
