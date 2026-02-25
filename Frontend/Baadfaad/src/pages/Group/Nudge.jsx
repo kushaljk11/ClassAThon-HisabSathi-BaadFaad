@@ -7,8 +7,8 @@ import {
   FaUserSecret,
   FaSpinner,
 } from "react-icons/fa";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import api from "../../config/config";
 
 export default function Nudge() {
@@ -16,6 +16,7 @@ export default function Nudge() {
   const [nudges, setNudges] = useState([]);
   const [sendingAll, setSendingAll] = useState(false);
   const [sendingId, setSendingId] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchNudges();
@@ -104,8 +105,8 @@ export default function Nudge() {
   const progressPct = totalCount > 0 ? Math.round((settledCount / totalCount) * 100) : 0;
   return (
     <div className="min-h-screen bg-zinc-100">
-      <TopBar />
-      <SideBar />
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       <main className="mx-auto max-w-6xl px-6 py-8 md:ml-56 md:px-8 md:pt-8 sm:mt-10">
         <section>

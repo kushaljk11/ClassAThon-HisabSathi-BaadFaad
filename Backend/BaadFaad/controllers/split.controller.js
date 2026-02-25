@@ -145,13 +145,7 @@ export const finalizeSplit = async (req, res) => {
       return sendResponse(res, 400, false, 'Split already finalized');
     }
 
-    // Update participant totals
-    for (const item of split.breakdown) {
-      await Participant.findByIdAndUpdate(item.participant, {
-        $inc: { totalOwed: item.amount },
-      });
-    }
-
+    // Update split status (skip participant totalOwed — field doesn't exist on model)
     split.status = SPLIT_STATUS.FINALIZED;
     split.finalizedAt = new Date();
     await split.save();

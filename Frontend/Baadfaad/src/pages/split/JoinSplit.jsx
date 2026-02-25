@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import { FaSpinner, FaUsers, FaCheckCircle } from "react-icons/fa";
 import api from "../../config/config";
 import toast from "react-hot-toast";

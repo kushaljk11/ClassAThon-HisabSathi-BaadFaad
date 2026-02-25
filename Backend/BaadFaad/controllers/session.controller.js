@@ -24,60 +24,33 @@ const generateQRCode = async (data) => {
 
 export const createSession = async (req, res) => {
   try {
-    console.log("=== CREATE SESSION REQUEST ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-    
     const { name, splitId } = req.body;
 
     if (!name || !splitId) {
-      console.log("Missing required fields:", { name, splitId });
       return res.status(400).json({ message: "name and splitId are required" });
     }
 
-    console.log("Checking for existing session with splitId:", splitId);
     // Check if a session already exists for this splitId
     const existingSession = await Session.findOne({ splitId });
     if (existingSession) {
-      console.log("Found existing session:", existingSession._id);
       return res.status(200).json({ 
         message: "Session already exists for this split", 
         session: existingSession 
       });
     }
 
-    console.log("Creating new session...");
     // Create session first to get the ID
     const session = await Session.create({ name, splitId });
-    console.log("Session created with ID:", session._id);
     
     // Generate QR code with session join URL
     const joinUrl = `${QR_BASE_URL}/split/ready?splitId=${splitId}&sessionId=${session._id}&type=session`;
-    console.log("Generating QR code for URL:", joinUrl);
     const qrCodeBase64 = await generateQRCode(joinUrl);
     
     // Update session with QR code
     session.qrCode = qrCodeBase64;
     await session.save();
-    console.log("Session updated with QR code");
     
     return res.status(201).json({ message: "Session created with QR code", session });
-  } catch (error) {
-    console.error("=== SESSION CREATION ERROR ===");
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-import Session from "../models/session.model.js";
-
-export const createSession = async (req, res) => {
-  try {
-    const { name, splitId } = req.body;
-
-    if (!name || !splitId) {
-      return res.status(400).json({ message: "name and splitId are required" });
-    }
-
-    const session = await Session.create({ name, splitId });
-    return res.status(201).json({ message: "Session created", session });
   } catch (error) {
     return res.status(500).json({ message: "Failed to create session", error: error.message });
   }
@@ -130,10 +103,6 @@ export const joinSession = async (req, res) => {
     const { sessionId } = req.params;
     const { userId, participantId, name, email } = req.body;
 
-    console.log("=== JOIN SESSION REQUEST ===");
-    console.log("Session ID:", sessionId);
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
@@ -184,14 +153,11 @@ export const joinSession = async (req, res) => {
       { path: "participants.participant", select: "name email" },
     ]);
 
-    console.log("Participant joined successfully");
     return res.status(200).json({
       message: "Joined session successfully",
       session,
     });
   } catch (error) {
-    console.error("=== JOIN SESSION ERROR ===");
-    console.error("Error:", error.message);
     return res.status(500).json({ message: "Failed to join session", error: error.message });
   }
 };

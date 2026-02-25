@@ -15,6 +15,7 @@ import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
+import settlementRoutes from './routes/settlment.routes.js';
 
 connectDB();
 
@@ -39,9 +40,19 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/splits', splitRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use("/api/session", sessionRoutes);
+app.use("/api/settlements", settlementRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server is running!');
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error',
+  });
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

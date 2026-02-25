@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import { FaLink, FaArrowRight } from "react-icons/fa";
 import toast from "react-hot-toast";
 

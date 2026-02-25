@@ -11,3 +11,13 @@ export const SPLIT_STATUS = {
   FINALIZED: 'finalized',
   CANCELLED: 'cancelled',
 };
+
+export const SETTLEMENT_STATUS = {
+  ACTIVE: 'active',
+  ARCHIVED: 'archived',
+};
+
+export const PARTICIPANT_SETTLEMENT_STATUS = {
+  PAID: 'paid',
+  DUE: 'due',
+};

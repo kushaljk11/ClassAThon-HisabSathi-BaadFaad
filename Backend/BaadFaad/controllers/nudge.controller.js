@@ -1,5 +1,5 @@
 import Nudge from "../models/nudge.model.js";
-import transporter from "../config/mail.js";
+import { sendMail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 
 export const createAndSendNudge = async (req, res) => {
@@ -35,8 +35,7 @@ export const createAndSendNudge = async (req, res) => {
     let errorMessage = null;
 
     try {
-      await transporter.sendMail({
-        from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+      await sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,

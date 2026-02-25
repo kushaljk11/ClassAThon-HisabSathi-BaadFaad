@@ -1,4 +1,5 @@
 import './App.css'
+import { Toaster } from 'react-hot-toast'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Landing from './pages/landing/Landing'
 import AboutUs from './pages/landing/AboutUs'
@@ -34,6 +35,8 @@ function AppContent() {
   }
 
   return (
+    <>
+    <Toaster position="top-right" />
     <Router>
       <Routes>
         {/* Public Routes */}
@@ -58,6 +61,7 @@ function AppContent() {
         <Route path="/group/details" element={<ProtectedRoute><Group /></ProtectedRoute>} />
       </Routes>
     </Router>
+    </>
   );
 }
 

@@ -111,8 +111,8 @@ export const createGroup = async (req, res) => {
     await group.save();
 
     // Populate before returning
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
+    await group.populate('createdBy', 'name email image');
+    await group.populate('members', 'name email image');
 
     return res.status(201).json({
       success: true,
@@ -132,8 +132,8 @@ export const createGroup = async (req, res) => {
 export const getGroups = async (_req, res) => {
   try {
     const groups = await Group.find()
-      .populate('createdBy', 'fullName email avatarUrl')
-      .populate('members', 'fullName email avatarUrl')
+      .populate('createdBy', 'name email image')
+      .populate('members', 'name email image')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -161,8 +161,8 @@ export const getGroupById = async (req, res) => {
     }
 
     const group = await Group.findById(groupId)
-      .populate('createdBy', 'fullName email avatarUrl')
-      .populate('members', 'fullName email avatarUrl')
+      .populate('createdBy', 'name email image')
+      .populate('members', 'name email image')
       .lean();
 
     if (!group) {
@@ -205,8 +205,8 @@ export const updateGroup = async (req, res) => {
       new: true,
       runValidators: true,
     })
-      .populate('createdBy', 'fullName email avatarUrl')
-      .populate('members', 'fullName email avatarUrl')
+      .populate('createdBy', 'name email image')
+      .populate('members', 'name email image')
       .lean();
 
     if (!group) {
@@ -266,8 +266,8 @@ export const joinGroup = async (req, res) => {
 
     // Check if user is already a member
     if (group.members.includes(memberIdToAdd)) {
-      await group.populate('createdBy', 'fullName email avatarUrl');
-      await group.populate('members', 'fullName email avatarUrl');
+      await group.populate('createdBy', 'name email image');
+      await group.populate('members', 'name email image');
       return res.status(200).json({
         success: true,
         message: 'Already a member of this group',
@@ -278,8 +278,8 @@ export const joinGroup = async (req, res) => {
     group.members.push(memberIdToAdd);
     await group.save();
 
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
+    await group.populate('createdBy', 'name email image');
+    await group.populate('members', 'name email image');
 
     console.log("User joined group successfully");
     return res.status(200).json({
@@ -327,8 +327,8 @@ export const addMember = async (req, res) => {
     group.members.push(userId);
     await group.save();
 
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
+    await group.populate('createdBy', 'name email image');
+    await group.populate('members', 'name email image');
 
     return res.status(200).json({
       success: true,
@@ -376,8 +376,8 @@ export const removeMember = async (req, res) => {
     group.members.splice(memberIndex, 1);
     await group.save();
 
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
+    await group.populate('createdBy', 'name email image');
+    await group.populate('members', 'name email image');
 
     return res.status(200).json({
       success: true,
@@ -407,8 +407,8 @@ export const deactivateGroup = async (req, res) => {
       { isActive: false },
       { new: true }
     )
-      .populate('createdBy', 'fullName email avatarUrl')
-      .populate('members', 'fullName email avatarUrl')
+      .populate('createdBy', 'name email image')
+      .populate('members', 'name email image')
       .lean();
 
     if (!group) {
