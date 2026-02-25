@@ -3,6 +3,10 @@ import { SPLIT_TYPE, SPLIT_STATUS } from '../config/constants.js';
 
 const splitSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      default: '',
+    },
     receipt: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Receipt',
@@ -31,7 +35,19 @@ const splitSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+        amountPaid: {
+          type: Number,
+          default: 0,
+        },
+        paymentStatus: {
+          type: String,
+          enum: ['unpaid', 'partial', 'paid'],
+          default: 'unpaid',
+        },
         name: {
+          type: String,
+        },
+        email: {
           type: String,
         },
         percentage: {

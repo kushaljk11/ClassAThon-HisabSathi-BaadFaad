@@ -4,6 +4,22 @@ import Group from '../models/group.model.js';
 
 const QR_BASE_URL = process.env.QR_BASE_URL || 'https://myapp.com';
 
+// Predefined set of group cover images
+const GROUP_COVER_IMAGES = [
+  'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1530062845289-9109b2c9c868?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=400&h=200&fit=crop',
+];
+
+const getRandomCoverImage = () => GROUP_COVER_IMAGES[Math.floor(Math.random() * GROUP_COVER_IMAGES.length)];
+
 const sendError = (res, statusCode, message, details = null) => {
   return res.status(statusCode).json({
     success: false,
@@ -71,7 +87,7 @@ const generateQRCode = async (data) => {
  */
 export const createGroup = async (req, res) => {
   try {
-    const { name, description, createdBy, members, defaultCurrency } = req.body;
+    const { name, description, createdBy, members, defaultCurrency, splitId, sessionId } = req.body;
 
     if (!name || !createdBy) {
       return sendError(res, 400, 'name and createdBy are required');
@@ -100,6 +116,9 @@ export const createGroup = async (req, res) => {
       createdBy,
       members: membersList,
       defaultCurrency,
+      image: getRandomCoverImage(),
+      splitId: splitId || null,
+      sessionId: sessionId || null,
     });
 
     // Generate QR code with group ID
@@ -129,9 +148,15 @@ export const createGroup = async (req, res) => {
  * Returns all groups ordered by newest first.
  * GET /api/groups
  */
-export const getGroups = async (_req, res) => {
+export const getGroups = async (req, res) => {
   try {
-    const groups = await Group.find()
+    // If createdBy query param is provided, only return groups created by that user (host-only view)
+    const filter = {};
+    if (req.query.createdBy && isValidObjectId(req.query.createdBy)) {
+      filter.createdBy = req.query.createdBy;
+    }
+
+    const groups = await Group.find(filter)
       .populate('createdBy', 'fullName email avatarUrl')
       .populate('members', 'fullName email avatarUrl')
       .sort({ createdAt: -1 })
@@ -221,6 +246,70 @@ export const updateGroup = async (req, res) => {
   } catch (error) {
     const formattedError = formatMongooseError(error);
     return sendError(res, formattedError.statusCode, formattedError.message, formattedError.details);
+  }
+};
+
+/**
+ * Public endpoint for joining a group via QR code
+ * POST /api/groups/:groupId/join
+ * Body: { userId?, name?, email? }
+ */
+export const joinGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { userId, name, email } = req.body;
+
+    if (!isValidObjectId(groupId)) {
+      return sendError(res, 400, 'Invalid groupId');
+    }
+
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      return sendError(res, 404, 'Group not found');
+    }
+
+    if (!group.isActive) {
+      return sendError(res, 400, 'Group is not active');
+    }
+
+    let memberIdToAdd = userId;
+
+    // If no userId provided, check for name to create guest participant
+    if (!userId && name) {
+      // For guest users, we'll track them differently or skip for groups
+      return sendError(res, 400, 'Guest participants not yet supported for groups. Please provide userId.');
+    }
+
+    if (!memberIdToAdd || !isValidObjectId(memberIdToAdd)) {
+      return sendError(res, 400, 'Valid userId is required');
+    }
+
+    // Check if user is already a member
+    if (group.members.includes(memberIdToAdd)) {
+      await group.populate('createdBy', 'fullName email avatarUrl');
+      await group.populate('members', 'fullName email avatarUrl');
+      return res.status(200).json({
+        success: true,
+        message: 'Already a member of this group',
+        data: group.toJSON(),
+      });
+    }
+
+    group.members.push(memberIdToAdd);
+    await group.save();
+
+    await group.populate('createdBy', 'fullName email avatarUrl');
+    await group.populate('members', 'fullName email avatarUrl');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Joined group successfully',
+      data: group.toJSON(),
+    });
+  } catch (error) {
+    const formattedError = formatMongooseError(error);
+    return sendError(res, formattedError.statusCode, formattedError.message);
   }
 };
 

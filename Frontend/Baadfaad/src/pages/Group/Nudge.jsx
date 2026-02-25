@@ -7,72 +7,104 @@ import {
   FaUserSecret,
   FaSpinner,
 } from "react-icons/fa";
+import { useParams, useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import api from "../../config/config";
+import toast from "react-hot-toast";
 
 export default function Nudge() {
+  const { groupId } = useParams();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
-  const [nudges, setNudges] = useState([]);
+  const [group, setGroup] = useState(null);
+  const [splitData, setSplitData] = useState(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [sendingId, setSendingId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNudges();
-    fetchMembers();
-  }, []);
+    const fetchData = async () => {
+      try {
+        // If we have a groupId, fetch group and its split to get breakdown
+        if (groupId) {
+          const groupRes = await api.get(`/groups/${groupId}`);
+          const groupData = groupRes.data?.data || groupRes.data;
+          setGroup(groupData);
 
-  const fetchNudges = async () => {
-    try {
-      const res = await api.get("/nudge");
-      setNudges(res.data.nudges || res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch nudges:", err);
-    }
-  };
+          const splitId = groupData?.splitId;
+          if (splitId) {
+            const splitRes = await api.get(`/splits/${splitId}`);
+            const split = splitRes.data?.split || splitRes.data;
+            setSplitData(split);
+            const breakdown = split?.breakdown || [];
 
-  const fetchMembers = async () => {
-    try {
-      // Get participants from the API
-      const res = await api.get("/participants");
-      const participantList = res.data || [];
-
-      // Map to nudge-friendly format
-      const mapped = participantList.map((p) => {
-        const existingNudge = nudges.find(
-          (n) => n.recipientEmail === p.email && n.status === "sent"
-        );
-        return {
-          _id: p._id,
-          name: p.name,
-          email: p.email || "",
-          status: p.isHost ? "Fully Settled" : "Pending Payment",
-          amount: "$0.00",
-          pending: !p.isHost,
-          action: p.isHost ? "Settled" : existingNudge ? "Nudge Sent" : "Anonymous Nudge",
-          actionStyle: p.isHost
-            ? "bg-zinc-100 text-slate-400"
-            : existingNudge
-            ? "bg-zinc-100 text-slate-400"
-            : "bg-emerald-100 text-emerald-700",
-        };
-      });
-      setMembers(mapped);
-    } catch (err) {
-      console.error("Failed to fetch members:", err);
-    }
-  };
+            const mapped = breakdown.map((b) => {
+              const name = b.name || b.user?.name || b.participant?.name || "Participant";
+              const email = b.email || b.user?.email || "";
+              const share = b.amount || 0;
+              const paid = b.amountPaid || 0;
+              const due = Math.max(0, share - paid);
+              const isPaid = b.paymentStatus === "paid";
+              return {
+                _id: b.participant || b.user?._id || b._id,
+                name,
+                email,
+                share,
+                paid,
+                due,
+                status: isPaid ? "Fully Settled" : due > 0 ? "Pending Payment" : "Fully Settled",
+                amount: `Rs. ${due.toLocaleString()}`,
+                pending: !isPaid && due > 0,
+                action: isPaid ? "Settled" : "Anonymous Nudge",
+                actionStyle: isPaid
+                  ? "bg-zinc-100 text-slate-400"
+                  : "bg-emerald-100 text-emerald-700",
+              };
+            });
+            setMembers(mapped);
+          }
+        } else {
+          // Fallback: get participants from API
+          const res = await api.get("/participants");
+          const participantList = res.data || [];
+          const mapped = participantList.map((p) => ({
+            _id: p._id,
+            name: p.name,
+            email: p.email || "",
+            status: p.isHost ? "Fully Settled" : "Pending Payment",
+            amount: "Rs. 0.00",
+            pending: !p.isHost,
+            action: p.isHost ? "Settled" : "Anonymous Nudge",
+            actionStyle: p.isHost
+              ? "bg-zinc-100 text-slate-400"
+              : "bg-emerald-100 text-emerald-700",
+          }));
+          setMembers(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        toast.error("Failed to load nudge data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [groupId]);
 
   const handleSendNudge = async (member) => {
     if (!member.email || member.action === "Settled" || member.action === "Nudge Sent") return;
     setSendingId(member._id);
     try {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const hostName = userData.name || userData.fullName || "Your friend";
+
       await api.post("/nudge/send", {
         recipientName: member.name,
         recipientEmail: member.email,
-        senderName: "BaadFaad",
-        groupName: "Split Group",
-        amount: 0,
+        senderName: hostName,
+        groupName: group?.name || "Split Group",
+        amount: member.due || 0,
       });
       // Update local state
       setMembers((prev) =>
@@ -82,8 +114,10 @@ export default function Nudge() {
             : m
         )
       );
+      toast.success(`Nudge sent to ${member.name}!`);
     } catch (err) {
       console.error("Failed to send nudge:", err);
+      toast.error(`Failed to send nudge to ${member.name}`);
     } finally {
       setSendingId(null);
     }
@@ -92,9 +126,15 @@ export default function Nudge() {
   const handleNudgeAll = async () => {
     setSendingAll(true);
     const pending = members.filter((m) => m.pending && m.action === "Anonymous Nudge");
+    if (pending.length === 0) {
+      toast("No pending members to nudge", { icon: "\u2139\uFE0F" });
+      setSendingAll(false);
+      return;
+    }
     for (const member of pending) {
       await handleSendNudge(member);
     }
+    toast.success(`Nudged ${pending.length} pending member${pending.length > 1 ? "s" : ""}!`);
     setSendingAll(false);
   };
 
@@ -102,6 +142,19 @@ export default function Nudge() {
   const totalCount = members.length;
   const pendingCount = totalCount - settledCount;
   const progressPct = totalCount > 0 ? Math.round((settledCount / totalCount) * 100) : 0;
+
+  // Total Group Balance = total split amount, Settled = total paid so far
+  const totalBalance = splitData?.totalAmount || members.reduce((sum, m) => sum + (m.share || 0), 0);
+  const settledBalance = members.reduce((sum, m) => sum + (m.paid || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
+        <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-100">
       <TopBar />
@@ -134,14 +187,14 @@ export default function Nudge() {
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Total Group Balance
               </p>
-              <p className="mt-2 text-5xl font-bold text-slate-900">$1,240.00</p>
+              <p className="mt-2 text-5xl font-bold text-slate-900">Rs. {totalBalance.toLocaleString()}</p>
             </article>
 
             <article className="rounded-[1.8rem] border border-zinc-200 bg-white p-5">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Settled So Far
               </p>
-              <p className="mt-2 text-5xl font-bold text-emerald-500">$806.00</p>
+              <p className="mt-2 text-5xl font-bold text-emerald-500">Rs. {settledBalance.toLocaleString()}</p>
             </article>
 
             <article className="rounded-[1.8rem] border border-zinc-200 bg-white p-5">

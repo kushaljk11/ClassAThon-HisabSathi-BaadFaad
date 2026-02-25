@@ -10,10 +10,12 @@ import ReadyToSplit from './pages/split/ReadyToSplit'
 import JoinedParticipants from './pages/split/JoinedParticipants'
 import SplitBreakdown from './pages/split/SplitBreakdown'
 import SplitCalculated from './pages/split/SplitCalculated'
-import Settlement from './pages/split/Settelment'
+import Settlement from './pages/group/Settelment'
 import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
 import Login from './pages/Auth/Login'
+import JoinSession from './pages/Dashboard/JoinSession'
+import JoinSplit from './pages/split/JoinSplit'
 import AuthCallback from './pages/Auth/AuthCallback'
 import { AuthProvider, useAuth } from './context/authContext'
 import ProtectedRoute from './components/common/ProtectedRoute'
@@ -43,6 +45,8 @@ function AppContent() {
         
         {/* Protected Routes - Require Authentication */}
         <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/join-session" element={<ProtectedRoute><JoinSession /></ProtectedRoute>} />
+        <Route path="/split/join" element={<ProtectedRoute><JoinSplit /></ProtectedRoute>} />
         <Route path="/split/create" element={<ProtectedRoute><CreateSplit /></ProtectedRoute>} />
         <Route path="/split/scan" element={<ProtectedRoute><ScanBill /></ProtectedRoute>} />
         <Route path="/split/ready" element={<ProtectedRoute><ReadyToSplit /></ProtectedRoute>} />
@@ -50,7 +54,9 @@ function AppContent() {
         <Route path="/split/breakdown" element={<ProtectedRoute><SplitBreakdown /></ProtectedRoute>} />
         <Route path="/split/calculated" element={<ProtectedRoute><SplitCalculated /></ProtectedRoute>} />
         <Route path="/split/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
-        <Route path="/group" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
+        <Route path="/group" element={<ProtectedRoute><Group /></ProtectedRoute>} />
+        <Route path="/group/:groupId/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
+        <Route path="/group/:groupId/nudge" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
         <Route path="/group/details" element={<ProtectedRoute><Group /></ProtectedRoute>} />
       </Routes>
     </Router>

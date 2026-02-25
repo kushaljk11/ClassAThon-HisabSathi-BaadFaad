@@ -1,7 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
+import { FaSpinner } from "react-icons/fa";
+import api from "../../config/config";
+import { useAuth } from "../../context/authContext";
+import useSessionSocket, { emitHostNavigate } from "../../hooks/useSessionSocket";
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -14,23 +18,128 @@ const COLORS = [
 
 export default function SessionLobby() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState(null);
+  const [split, setSplit] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const splitName = localStorage.getItem("splitName") || "Split Session";
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
-  // Static placeholder participants — will be replaced when sessions are integrated
-  const participants = [
-    { id: 1, name: "You", initial: "Y", isHost: true, ...COLORS[0] },
-  ];
+  const normalizeId = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value._id) return String(value._id);
+      if (value.id) return String(value.id);
+      if (typeof value.toString === "function") return value.toString();
+    }
+    return String(value);
+  };
+
+  const normalizedCurrentUserId = normalizeId(user?._id || user?.id);
+  const normalizedCurrentUserEmail = (user?.email || "").trim().toLowerCase();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (sessionId) {
+          const sessionRes = await api.get(`/session/${sessionId}`);
+          setSession(sessionRes.data);
+        }
+        if (splitId) {
+          const splitRes = await api.get(`/splits/${splitId}`);
+          setSplit(splitRes.data.split);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sessionId, splitId]);
+
+  const handleParticipantJoined = useCallback((data) => {
+    if (data.session) {
+      setSession(data.session);
+    }
+  }, []);
+
+  const handleHostNavigate = useCallback((data) => {
+    if (data.path) {
+      navigate(data.path);
+    }
+  }, [navigate]);
+
+  useSessionSocket(sessionId, handleParticipantJoined, handleHostNavigate);
+
+  const splitName = session?.name || "Split Session";
+
+  // Get participants from session and map them to display format
+  const participants = session?.participants?.map((p, index) => {
+    const participantId = normalizeId(p.user || p.participant || p._id);
+    const participantEmail = (
+      p.email || p.user?.email || p.participant?.email || ""
+    )
+      .trim()
+      .toLowerCase();
+    const participantName =
+      p.name ||
+      p.user?.name ||
+      p.participant?.name ||
+      p.email ||
+      p.user?.email ||
+      p.participant?.email ||
+      `User ${index + 1}`;
+
+    const isCurrentUser =
+      (!!normalizedCurrentUserId && participantId === normalizedCurrentUserId) ||
+      (!!normalizedCurrentUserEmail &&
+        !!participantEmail &&
+        participantEmail === normalizedCurrentUserEmail);
+
+    const displayName = isCurrentUser ? "You" : participantName;
+    
+    const isHost = index === 0; // First participant is the host (creator)
+    
+    return {
+      id: participantId || index,
+      name: displayName,
+      initial: participantName.charAt(0).toUpperCase(),
+      isHost,
+      ...COLORS[index % COLORS.length],
+    };
+  }) || [];
+
+  const isCurrentUserHost = participants.length > 0 && participants[0]?.name === "You";
 
   const handleContinueToScan = () => {
-    navigate("/split/scan");
+    const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
+    emitHostNavigate(sessionId, path);
+    navigate(path);
   };
 
   const handleLeave = () => {
-    localStorage.removeItem("splitName");
     navigate("/dashboard");
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <main className="ml-0 flex-1 px-10 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-10 flex items-center justify-center">
+          <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -106,10 +215,17 @@ export default function SessionLobby() {
             </div>
 
             <div className="mt-8 space-y-3">
-              <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                Continue to Scan Bill
-              </button>
-              <button onClick={handleLeave} className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+              {isCurrentUserHost ? (
+                <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                  Continue to Scan Bill
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-3 text-sm font-semibold text-slate-500">
+                  <FaSpinner className="animate-spin" />
+                  Waiting for host to continue...
+                </div>
+              )}
+              <button onClick={handleLeave} className="w-full rounded-xl bg-red-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
                 Leave
               </button>
             </div>

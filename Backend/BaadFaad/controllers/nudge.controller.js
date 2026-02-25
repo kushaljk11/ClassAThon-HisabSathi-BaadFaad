@@ -1,6 +1,7 @@
 import Nudge from "../models/nudge.model.js";
 import transporter from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
+import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
 export const createAndSendNudge = async (req, res) => {
   try {
@@ -96,6 +97,64 @@ export const getNudgeById = async (req, res) => {
     return res.status(200).json(nudge);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch nudge", error: error.message });
+  }
+};
+
+/**
+ * POST /nudge/split-summary
+ * Sends a detailed split-summary email to every participant in the breakdown.
+ * Body: { groupName, totalAmount, breakdown: [{ name, email, share, amountPaid, balanceDue }] }
+ */
+export const sendSplitSummary = async (req, res) => {
+  try {
+    const { groupName, totalAmount, breakdown } = req.body;
+
+    if (!breakdown || !Array.isArray(breakdown) || breakdown.length === 0) {
+      return res.status(400).json({ message: "breakdown array is required" });
+    }
+
+    const participantCount = breakdown.length;
+    const allParticipants = breakdown.map((b) => ({
+      name: b.name || "Participant",
+      share: b.share || 0,
+      amountPaid: b.amountPaid || 0,
+      balanceDue: b.balanceDue || 0,
+    }));
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const b of breakdown) {
+      if (!b.email) continue;
+
+      const template = createSplitSummaryTemplate({
+        recipientName: b.name || "Friend",
+        groupName: groupName || "Split",
+        totalAmount: totalAmount || 0,
+        participantCount,
+        recipientShare: b.share || 0,
+        recipientPaid: b.amountPaid || 0,
+        recipientDue: b.balanceDue || 0,
+        participants: allParticipants,
+      });
+
+      try {
+        await transporter.sendMail({
+          from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+          to: b.email,
+          subject: template.subject,
+          text: template.text,
+          html: template.html,
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return res.status(200).json({ message: "Summary emails processed", sent, failed });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to send split summary", error: error.message });
   }
 };
 

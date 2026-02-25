@@ -4,6 +4,7 @@ import {
   getAllSplits,
   getSplitById,
   updateSplit,
+  updateParticipantPayment,
   finalizeSplit,
   deleteSplit,
 } from '../controllers/split.controller.js';
@@ -11,10 +12,11 @@ import { protect } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, createSplit);
+router.post('/', createSplit);
 router.get('/', protect, getAllSplits);
-router.get('/:id', protect, getSplitById);
-router.put('/:id', protect, updateSplit);
+router.get('/:id', getSplitById);
+router.put('/:id', updateSplit);
+router.put('/:id/participant/:participantIndex', updateParticipantPayment);
 router.post('/:id/finalize', protect, finalizeSplit);
 router.delete('/:id', protect, deleteSplit);
 

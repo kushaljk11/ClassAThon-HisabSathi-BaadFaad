@@ -20,14 +20,22 @@ const ICON_BGS = ["bg-emerald-100", "bg-blue-100", "bg-emerald-100", "bg-amber-1
 export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [recentSplits, setRecentSplits] = useState([]);
+  const [lastPaid, setLastPaid] = useState(null);
+  const [monthlySpending, setMonthlySpending] = useState(0);
+  const [prevMonthSpending, setPrevMonthSpending] = useState(0);
 
   useEffect(() => {
     const fetchSplits = async () => {
       try {
-        const res = await api.get("/splits");
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const userId = userData._id || userData.id;
+        const url = userId ? `/splits?userId=${userId}` : "/splits";
+        const res = await api.get(url);
         const splits = res.data.splits || [];
+
+        // --- Recent Splits (top 5) ---
         const mapped = splits.slice(0, 5).map((s, i) => ({
-          title: s.notes || s.receipt?.restaurant || `Split #${i + 1}`,
+          title: s.name || s.sessionName || s.notes || s.receipt?.restaurant || `Split #${i + 1}`,
           date: new Date(s.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
           members: `${s.breakdown?.length || 0} participants`,
           amount: `Rs. ${(s.totalAmount || 0).toLocaleString()}`,
@@ -40,13 +48,56 @@ export default function Home() {
           iconBg: ICON_BGS[i % ICON_BGS.length],
         }));
         setRecentSplits(mapped);
+
+        // --- Last Time You Paid (most recent finalized split) ---
+        const finalized = splits.filter((s) => s.status === "finalized");
+        if (finalized.length > 0) {
+          const last = finalized[0];
+          setLastPaid({
+            amount: last.totalAmount || 0,
+            label: last.name || last.sessionName || last.notes || last.receipt?.restaurant || "a split",
+            date: new Date(last.createdAt).toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }),
+          });
+        }
+        // If no finalized splits, lastPaid stays null → shows N/A
+
+        // --- Monthly Spending (current month vs previous month) ---
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+        let thisMonth = 0;
+        let prevMonth = 0;
+        for (const s of splits) {
+          const d = new Date(s.createdAt);
+          const amt = s.totalAmount || 0;
+          if (d >= thisMonthStart) {
+            thisMonth += amt;
+          } else if (d >= prevMonthStart && d < thisMonthStart) {
+            prevMonth += amt;
+          }
+        }
+        setMonthlySpending(thisMonth);
+        setPrevMonthSpending(prevMonth);
       } catch (err) {
         // If API fails, show empty state
-        console.error("Failed to fetch splits:", err);
       }
     };
     fetchSplits();
   }, []);
+
+  // Calculate percentage change
+  const spendingChange = prevMonthSpending > 0
+    ? Math.round(((monthlySpending - prevMonthSpending) / prevMonthSpending) * 100)
+    : monthlySpending > 0
+      ? 100
+      : 0;
+
+  const currentMonthLabel = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div className="flex min-h-screen bg-zinc-100">
@@ -69,13 +120,13 @@ export default function Home() {
               <FaPlusCircle />
               Create Split
             </Link>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-lg font-semibold text-white backdrop-blur"
+            <Link
+              to="/join-session"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-lg font-semibold text-white backdrop-blur hover:bg-white/20 transition"
             >
               <FaUsers />
               Join Split
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -91,10 +142,16 @@ export default function Home() {
                     <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Last Time You Paid
                     </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      $45.00 for Groceries
-                    </p>
-                    <p className="text-sm text-slate-400">on October 24th, 2023</p>
+                    {lastPaid ? (
+                      <>
+                        <p className="text-2xl font-bold text-slate-900">
+                          Rs. {lastPaid.amount.toLocaleString()} for {lastPaid.label}
+                        </p>
+                        <p className="text-sm text-slate-400">on {lastPaid.date}</p>
+                      </>
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-400">N/A</p>
+                    )}
                   </div>
                 </div>
                 <button type="button" className="text-slate-400">
@@ -110,18 +167,24 @@ export default function Home() {
                     Monthly Spending
                   </p>
                   <div className="mt-1 flex items-end gap-3">
-                    <p className="text-3xl font-bold text-slate-900">$1,240.50</p>
-                    <span className="text-sm font-bold text-emerald-500">
-                      +12%
-                    </span>
+                    <p className="text-3xl font-bold text-slate-900">
+                      Rs. {monthlySpending.toLocaleString()}
+                    </p>
+                    {spendingChange !== 0 && (
+                      <span
+                        className={`text-sm font-bold ${
+                          spendingChange > 0 ? "text-red-500" : "text-emerald-500"
+                        }`}
+                      >
+                        {spendingChange > 0 ? "+" : ""}
+                        {spendingChange}%
+                      </span>
+                    )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-slate-600"
-                >
-                  October 2023
-                </button>
+                <span className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-slate-600">
+                  {currentMonthLabel}
+                </span>
               </div>
 
               <div className="mt-24">

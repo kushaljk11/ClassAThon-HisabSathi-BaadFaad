@@ -3,34 +3,122 @@ import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaReceipt, FaQrcode, FaUserFriends } from "react-icons/fa";
+import api from "../../config/config";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CreateSplit() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [splitName, setSplitName] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleCreateSession = () => {
+  const handleCreateSession = async () => {
     if (!splitName.trim()) {
       setError("Please enter a split name");
+      toast.error("Please enter a split name");
       return;
     }
-    // Store the split name for session-based split
-    localStorage.setItem("splitName", splitName.trim());
-    navigate("/split/ready");
+    
+    setError("");
+    setLoading(true);
+    const toastId = toast.loading("Creating split session...");
+    
+    try {
+      // Create a split with minimal data
+      const splitRes = await api.post("/splits", {
+        splitType: "equal",
+        totalAmount: 0,
+        name: splitName.trim(),
+      });
+      
+      const split = splitRes.data.split;
+      
+      // Create a session for this split, passing userId so host is auto-added
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const sessionRes = await api.post("/session", {
+        name: splitName.trim(),
+        splitId: split._id,
+        userId: userData._id || userData.id,
+      });
+      
+      const session = sessionRes.data.session;
+      
+      toast.dismiss(toastId);
+      toast.success("Session created successfully!");
+      
+      // Navigate with IDs in URL - data is in database
+      navigate(`/split/ready?splitId=${split._id}&sessionId=${session._id}&type=session`);
+    } catch (err) {
+      console.error("Failed to create session:", err);
+      toast.dismiss(toastId);
+      toast.error(
+        err.response?.data?.message || "Failed to create session. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     if (!splitName.trim()) {
       setError("Please enter a group name");
+      toast.error("Please enter a group name");
       return;
     }
-    localStorage.setItem("splitName", splitName.trim());
-    navigate("/group");
+    
+    setError("");
+    setLoading(true);
+    const toastId = toast.loading("Creating group split...");
+    
+    try {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = userData._id || userData.id;
+
+      // 1. Create a split
+      const splitRes = await api.post("/splits", {
+        splitType: "equal",
+        totalAmount: 0,
+        name: splitName.trim(),
+      });
+      const split = splitRes.data.split;
+
+      // 2. Create a session for QR sharing
+      const sessionRes = await api.post("/session", {
+        name: splitName.trim(),
+        splitId: split._id,
+        userId,
+      });
+      const session = sessionRes.data.session;
+
+      // 3. Create the group immediately so it appears in the Group nav
+      const groupRes = await api.post("/groups", {
+        name: splitName.trim(),
+        description: `Group created on ${new Date().toLocaleDateString()}`,
+        createdBy: userId,
+        members: [userId],
+        splitId: split._id,
+        sessionId: session._id,
+      });
+      const groupId = groupRes.data?.data?.id || groupRes.data?.data?._id || groupRes.data?.id;
+
+      toast.dismiss(toastId);
+      toast.success("Group created & session ready!");
+      
+      navigate(`/split/ready?splitId=${split._id}&sessionId=${session._id}&type=group&groupId=${groupId}`);
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error(
+        err.response?.data?.message || "Failed to create group split. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <Toaster position="top-right" reverseOrder={false} />
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       
@@ -84,19 +172,21 @@ export default function CreateSplit() {
                 <button
                   type="button"
                   onClick={handleCreateSession}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FaQrcode className="text-lg" />
-                  Share QR and Scan Bills
+                  {loading ? "Creating..." : "Share QR and Scan Bills"}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleCreateGroup}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FaUserFriends className="text-lg" />
-                  Share QR and Create Group
+                  {loading ? "Creating..." : "Share QR and Create Group"}
                 </button>
               </div>
 

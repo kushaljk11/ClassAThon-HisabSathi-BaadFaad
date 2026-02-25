@@ -13,8 +13,13 @@ export default function Group() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await api.get("/groups");
-        setGroups(res.data.groups || res.data || []);
+        // Only fetch groups created by the current user (host-only)
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const userId = userData._id || userData.id;
+        const url = userId ? `/groups?createdBy=${userId}` : "/groups";
+        const res = await api.get(url);
+        const payload = res.data;
+        setGroups(Array.isArray(payload) ? payload : payload.data || payload.groups || []);
       } catch (err) {
         console.error("Failed to fetch groups:", err);
       } finally {
@@ -53,14 +58,26 @@ export default function Group() {
             <p className="text-slate-500">No groups yet. Create one to get started!</p>
           ) : (
             groups.map((group) => (
-              <article key={group.id || group._id}>
+              <article
+                key={group.id || group._id}
+                className="cursor-pointer transition hover:shadow-md"
+                onClick={() => navigate(`/group/${group.id || group._id}/settlement`)}
+              >
                 <div className="relative rounded-[1.8rem] bg-white p-4 shadow-sm">
                   <span className="absolute right-6 top-6 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow">
                     {group.defaultCurrency || "NPR"}
                   </span>
-                  <div className="flex h-48 w-full items-center justify-center rounded-xl bg-emerald-50 text-4xl text-emerald-400">
-                    {group.name?.[0]?.toUpperCase() || "G"}
-                  </div>
+                  {group.image ? (
+                    <img
+                      src={group.image}
+                      alt={group.name}
+                      className="h-48 w-full rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-48 w-full items-center justify-center rounded-xl bg-emerald-50 text-4xl text-emerald-400">
+                      {group.name?.[0]?.toUpperCase() || "G"}
+                    </div>
+                  )}
                 </div>
                 <h3 className="mt-4 text-lg font-bold text-slate-900">{group.name}</h3>
                 <p className="text-sm text-slate-500">{group.description || "No description"}</p>

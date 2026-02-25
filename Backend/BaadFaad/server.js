@@ -3,10 +3,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
 import connectDB from './config/database.js';
+import { initSocket } from './config/socket.js';
+
+// Load env vars BEFORE anything that needs them
+dotenv.config();
+
+// routes
 import mailRoutes from './routes/mail.routes.js';
 import nudgeRoutes from './routes/nudge.route.js';
 import groupRoutes from './routes/group.routes.js';
+import authRoutes from './routes/authRoute.js';
 import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
@@ -25,8 +33,14 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 connectDB();
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO
+initSocket(httpServer);
+
 app.use(cors());
 app.use(express.json());
+
 const PORT = process.env.PORT || 5000;
 
 // Mount API routes
@@ -44,4 +58,4 @@ app.get('/', (req, res) => {
   res.send('Server is running!');
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
