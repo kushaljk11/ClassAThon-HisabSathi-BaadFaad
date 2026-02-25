@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaBolt,
   FaCalendarAlt,
@@ -12,42 +12,41 @@ import {
 import { Link } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
+import api from "../../config/config";
 
-const recentSplits = [
-  {
-    title: "Dinner Night",
-    date: "24 Oct",
-    members: "Shared with 3 friends",
-    amount: "$120.00",
-    status: "SETTLED",
-    statusStyle: "bg-emerald-100 text-emerald-700",
-    icon: FaUtensils,
-    iconBg: "bg-emerald-100",
-  },
-  {
-    title: "Netflix",
-    date: "22 Oct",
-    members: "Monthly split",
-    amount: "$15.00",
-    status: "PENDING",
-    statusStyle: "bg-amber-100 text-amber-700",
-    icon: FaCalendarAlt,
-    iconBg: "bg-blue-100",
-  },
-  {
-    title: "Electricity",
-    date: "18 Oct",
-    members: "Roommates",
-    amount: "$245.50",
-    status: "SETTLED",
-    statusStyle: "bg-emerald-100 text-emerald-700",
-    icon: FaBolt,
-    iconBg: "bg-emerald-100",
-  },
-];
+const ICONS = [FaUtensils, FaCalendarAlt, FaBolt, FaShoppingCart];
+const ICON_BGS = ["bg-emerald-100", "bg-blue-100", "bg-emerald-100", "bg-amber-100"];
 
 export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [recentSplits, setRecentSplits] = useState([]);
+
+  useEffect(() => {
+    const fetchSplits = async () => {
+      try {
+        const res = await api.get("/splits");
+        const splits = res.data.splits || [];
+        const mapped = splits.slice(0, 5).map((s, i) => ({
+          title: s.notes || s.receipt?.restaurant || `Split #${i + 1}`,
+          date: new Date(s.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
+          members: `${s.breakdown?.length || 0} participants`,
+          amount: `Rs. ${(s.totalAmount || 0).toLocaleString()}`,
+          status: s.status === "finalized" ? "SETTLED" : "PENDING",
+          statusStyle:
+            s.status === "finalized"
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-amber-100 text-amber-700",
+          icon: ICONS[i % ICONS.length],
+          iconBg: ICON_BGS[i % ICON_BGS.length],
+        }));
+        setRecentSplits(mapped);
+      } catch (err) {
+        // If API fails, show empty state
+        console.error("Failed to fetch splits:", err);
+      }
+    };
+    fetchSplits();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-zinc-100">

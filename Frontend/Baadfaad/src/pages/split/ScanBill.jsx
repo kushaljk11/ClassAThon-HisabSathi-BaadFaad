@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash } from "react-icons/fa";
+import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash, FaSpinner } from "react-icons/fa";
+import api from "../../config/config";
 
 export default function ScanBill() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function ScanBill() {
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemQuantity, setItemQuantity] = useState("1");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -80,8 +83,53 @@ export default function ScanBill() {
 
   const hasItems = scannedData || manualItems.length > 0;
 
-  const handleContinue = () => {
-    navigate("/split/calculated");
+  const handleContinue = async () => {
+    // Build all items from scanned + manual
+    const allItems = [
+      ...(scannedData?.items || []).map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: 1,
+      })),
+      ...manualItems.map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    ];
+
+    const totalAmount = calculateTotal();
+
+    setSaving(true);
+    setError("");
+    try {
+      // Create receipt in backend
+      const receiptRes = await api.post("/receipts", {
+        restaurant: scannedData?.restaurant || "",
+        address: scannedData?.address || "",
+        items: allItems,
+        totalAmount,
+      });
+
+      // Store receipt for next pages
+      localStorage.setItem("currentReceipt", JSON.stringify(receiptRes.data.receipt));
+
+      // Create a split (equal by default)
+      const splitRes = await api.post("/splits", {
+        receiptId: receiptRes.data.receipt._id,
+        splitType: "equal",
+        totalAmount,
+        breakdown: [],
+      });
+
+      localStorage.setItem("currentSplit", JSON.stringify(splitRes.data.split));
+
+      navigate("/split/calculated");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save receipt and calculate split");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -340,11 +388,16 @@ export default function ScanBill() {
           {/* Continue Button */}
           {hasItems && (
             <div className="mt-6">
+              {error && (
+                <p className="mb-3 text-sm text-red-500 font-medium text-center">{error}</p>
+              )}
               <button
                 type="button"
                 onClick={handleContinue}
-                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
+                disabled={saving}
+                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {saving ? <FaSpinner className="animate-spin" /> : null}
                 Calculate Split
               </button>
             </div>

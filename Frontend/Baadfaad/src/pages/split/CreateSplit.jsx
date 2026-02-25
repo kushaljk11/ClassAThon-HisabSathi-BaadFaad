@@ -7,9 +7,26 @@ import { FaReceipt, FaQrcode } from "react-icons/fa";
 export default function CreateSplit() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [splitName, setSplitName] = useState("");
+  const [error, setError] = useState("");
 
-  const handleCreateSession = () => {
+  const handleStartSplit = () => {
+    if (!splitName.trim()) {
+      setError("Please enter a split name");
+      return;
+    }
+    // Store the split name so later pages can use it
+    localStorage.setItem("splitName", splitName.trim());
     navigate("/split/scan");
+  };
+
+  const handleCreateWithQR = () => {
+    if (!splitName.trim()) {
+      setError("Please enter a name");
+      return;
+    }
+    localStorage.setItem("splitName", splitName.trim());
+    navigate("/split/ready");
   };
 
   return (
@@ -20,7 +37,7 @@ export default function CreateSplit() {
       <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900">New Split Session</h1>
+            <h1 className="text-3xl font-bold text-slate-900">New Split</h1>
             <p className="mt-2 text-base text-slate-500">
               Organize your group expenses in seconds.
             </p>
@@ -32,17 +49,17 @@ export default function CreateSplit() {
                 <FaReceipt className="text-lg" />
               </div>
               <h2 className="text-xl font-bold text-slate-900">
-                Start a New Session
+                Start a New Split
               </h2>
             </div>
 
             <div className="space-y-6">
               <div>
                 <label
-                  htmlFor="sessionName"
+                  htmlFor="splitName"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  Session Name
+                  Split Name
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -50,35 +67,41 @@ export default function CreateSplit() {
                   </div>
                   <input
                     type="text"
-                    id="sessionName"
+                    id="splitName"
+                    value={splitName}
+                    onChange={(e) => setSplitName(e.target.value)}
                     placeholder="e.g., Dinner at Thamel"
                     className="w-full rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 pl-11 text-base text-slate-900 placeholder-slate-400 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-red-500 font-medium">{error}</p>
+              )}
+
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={handleCreateSession}
+                  onClick={handleStartSplit}
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
                 >
-                  <FaQrcode className="text-lg" />
-                  Create Session & Generate QR
+                  <FaReceipt className="text-lg" />
+                  Scan Bill & Split
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleCreateSession}
+                  onClick={handleCreateWithQR}
                   className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50"
                 >
                   <FaQrcode className="text-lg" />
-                  Create Group & Generate QR
+                  Share QR & Split with Friends
                 </button>
               </div>
 
               <p className="text-center text-sm text-slate-400">
-                Clicking create will generate a unique QR code for others to scan and join instantly.
+                Scan your bill and we&apos;ll calculate the split for you.
               </p>
             </div>
           </div>
