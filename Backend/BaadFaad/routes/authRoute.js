@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Authentication Routes
+ * @description Express router for user authentication endpoints.
+ *              Supports email/password login and Google OAuth 2.0 flow.
+ *
+ * Routes:
+ *  POST /login           - Email/password authentication
+ *  GET  /google          - Initiates Google OAuth consent screen
+ *  GET  /google/callback  - Handles Google OAuth callback, issues JWT & redirects to frontend
+ *
+ * @module routes/authRoute
+ */
 import express from "express";
 import {getPassport} from "../config/passport.js";
 import  {login}  from "../controllers/authController.js";

@@ -1,10 +1,22 @@
+/**
+ * @fileoverview Authentication Middleware (lenient / dev-friendly)
+ * @description JWT verification middleware for protected routes.
+ *              In development mode, requests without a token are allowed through
+ *              so that routes remain testable without full auth setup.
+ *              In production, a valid Bearer token is strictly required.
+ *
+ * @module middlewares/auth.middleware
+ */
 import jwt from 'jsonwebtoken';
 
 /**
- * Middleware to verify JWT tokens.
- * Attaches decoded user info to req.user.
- * For this prototype the middleware is lenient – if no JWT_SECRET is set it
- * falls through so that routes remain testable without auth.
+ * Verify JWT token and attach decoded user info to the request.
+ * In development/prototype mode the middleware is lenient — if no token
+ * is provided it falls through so routes remain testable without auth.
+ *
+ * @param {import('express').Request}  req  - Express request object
+ * @param {import('express').Response} res  - Express response object
+ * @param {import('express').NextFunction} next - Next middleware function
  */
 export const protect = (req, res, next) => {
   try {

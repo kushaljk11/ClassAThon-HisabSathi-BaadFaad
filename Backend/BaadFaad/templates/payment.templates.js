@@ -1,3 +1,10 @@
+/**
+ * @file templates/payment.templates.js
+ * @description Branded HTML email template for payment confirmation receipts.
+ * Returns { subject, text, html } ready for Nodemailer.
+ */
+
+/** BaadFaad brand colour palette for email templates. */
 const BRAND_COLORS = {
 	primary: "#34d399",
 	primaryDark: "#10b981",
@@ -8,6 +15,19 @@ const BRAND_COLORS = {
 	border: "#d4d4d8",
 };
 
+/**
+ * Generate a payment confirmation email template.
+ * @param {object} opts
+ * @param {string} opts.recipientName
+ * @param {string|number} opts.amount
+ * @param {string} opts.currency
+ * @param {string} opts.groupName
+ * @param {string} opts.paidTo
+ * @param {string} opts.paymentMethod
+ * @param {string} opts.paymentDate
+ * @param {string} opts.transactionId
+ * @returns {{ subject: string, text: string, html: string }}
+ */
 export const createPaymentTemplate = ({
 	recipientName = "there",
 	amount = "0",

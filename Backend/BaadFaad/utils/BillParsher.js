@@ -1,3 +1,9 @@
+/**
+ * @file utils/BillParsher.js
+ * @description AI-powered bill parser using Google Gemini.
+ * Accepts a base64-encoded bill image and returns structured JSON
+ * with line items, subtotal, tax, and grand_total.
+ */
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import path from "path";
@@ -11,6 +17,12 @@ const api = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY,
 });
 
+/**
+ * Extract the first valid JSON object/array from an AI text response.
+ * Handles fenced code blocks and raw JSON.
+ * @param {string} text - raw AI response text
+ * @returns {string} trimmed JSON string
+ */
 function extractJson(text) {
   if (!text) {
     throw new Error("No response from bill parser");
@@ -31,6 +43,11 @@ function extractJson(text) {
   return text.trim();
 }
 
+/**
+ * Send a base64 bill image to Google Gemini and return parsed bill JSON.
+ * @param {string} base64Image - data URL or raw base64 string
+ * @returns {Promise<{items: Array, subtotal: number, tax: number, grand_total: number}>}
+ */
 export async function parseBill(base64Image) {
   try {
     if (!process.env.GOOGLE_API_KEY) {

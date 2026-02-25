@@ -1,3 +1,9 @@
+/**
+ * @file controllers/split.controller.js
+ * @description Split controller — manages the full lifecycle of a bill split:
+ * creation, retrieval, recalculation, per-participant payment updates,
+ * and finalization. Supports equal, percentage, custom, and item-based splits.
+ */
 import Split from '../models/split.model.js';
 import Receipt from '../models/receipt.model.js';
 import Participant from '../models/participant.model.js';

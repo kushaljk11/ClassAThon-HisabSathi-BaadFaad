@@ -1,14 +1,33 @@
+/**
+ * @file templates/nudge.templates.js
+ * @description Branded HTML email template for payment nudge reminders.
+ * Returns { subject, text, html } ready for Nodemailer.
+ */
+
+/** BaadFaad brand colour palette for email templates. */
 const BRAND_COLORS = {
 	primary: "#34d399",
-	primaryDark: "#10b981",
-	textDark: "#0f172a",
-	textMuted: "#64748b",
+	primaryDark: "#059669",
 	pageBg: "#f4f4f5",
 	cardBg: "#ffffff",
-	border: "#d4d4d8",
+	border: "#e4e4e7",
+	textDark: "#18181b",
+	textMuted: "#71717a",
 };
 
-export const createNudgeTemplate = ({
+/**
+ * Build a branded nudge-reminder email.
+ * @param {Object} opts
+ * @param {string} opts.recipientName
+ * @param {string} opts.senderName
+ * @param {string} opts.groupName
+ * @param {string} opts.amount
+ * @param {string} opts.currency
+ * @param {string} opts.dueDate
+ * @param {string} opts.payLink
+ * @returns {{ subject: string, text: string, html: string }}
+ */
+const createNudgeTemplate = ({
 	recipientName = "Friend",
 	senderName = "Your friend",
 	groupName = "your group",

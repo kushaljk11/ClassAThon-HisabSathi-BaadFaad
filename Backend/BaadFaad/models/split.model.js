@@ -1,3 +1,9 @@
+/**
+ * @file models/split.model.js
+ * @description Split model — the core entity tracking how a bill is divided.
+ * Contains the split type (equal / percentage / custom / item-based),
+ * a per-participant breakdown with payment tracking, and lifecycle status.
+ */
 import mongoose from 'mongoose';
 import { SPLIT_TYPE, SPLIT_STATUS } from '../config/constants.js';
 

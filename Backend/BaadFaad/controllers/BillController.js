@@ -1,5 +1,17 @@
+/**
+ * @file controllers/BillController.js
+ * @description Bill parsing controller — accepts a base64-encoded bill image,
+ * sends it to the Gemini AI model for OCR extraction, and returns
+ * structured JSON (items, subtotal, tax, grand_total).
+ */
 import  {parseBill}  from "../utils/BillParsher.js";
 
+/**
+ * Parse a bill image using AI OCR.
+ * @route POST /api/bills/parse
+ * @param {import('express').Request} req - body: { image: string } (base64)
+ * @param {import('express').Response} res - parsed bill JSON
+ */
 export default async function billController(req, res) {
 
   try {

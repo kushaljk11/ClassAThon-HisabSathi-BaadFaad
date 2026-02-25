@@ -1,10 +1,18 @@
+/**
+ * @file controllers/authController.js
+ * @description Authentication controller — handles email/password login.
+ * Google OAuth is handled separately via Passport in the auth route.
+ */
 import bcrypt from 'bcryptjs';
 import {User} from '../models/userModel.js';
 import { generateToken } from '../utils/generateToken.js';
 
 
 /**
- * POST /api/auth/login
+ * Authenticate a user with email & password.
+ * @route POST /api/auth/login
+ * @param {import('express').Request} req - body: { email, password }
+ * @param {import('express').Response} res - JWT token + user object on success
  */
 export const login = async (req, res) => {
   const { email, password } = req.body;

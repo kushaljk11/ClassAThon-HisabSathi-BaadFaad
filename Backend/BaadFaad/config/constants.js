@@ -1,3 +1,9 @@
+/**
+ * @file config/constants.js
+ * @description Application-wide enumerations for split types and statuses.
+ */
+
+/** Supported split calculation strategies. */
 export const SPLIT_TYPE = {
   EQUAL: 'equal',
   PERCENTAGE: 'percentage',
@@ -5,6 +11,7 @@ export const SPLIT_TYPE = {
   ITEM_BASED: 'item_based',
 };
 
+/** Lifecycle statuses a split can move through. */
 export const SPLIT_STATUS = {
   PENDING: 'pending',
   CALCULATED: 'calculated',

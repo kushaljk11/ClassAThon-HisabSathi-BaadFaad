@@ -1,6 +1,14 @@
+/**
+ * @file controllers/participant.controller.js
+ * @description Participant CRUD controller — manages individual participant
+ * records (create, list, get, update, delete).
+ */
 import Participant from '../models/participant.model.js';
 
-// create new participant record
+/**
+ * Create a new participant record.
+ * @route POST /api/participants
+ */
 export const createParticipant = async (req, res, next) => {
   try {
     const participant = await Participant.create(req.body);
@@ -10,7 +18,10 @@ export const createParticipant = async (req, res, next) => {
   }
 };
 
-// fetch list of participants
+/**
+ * List all participants.
+ * @route GET /api/participants
+ */
 export const getParticipants = async (req, res, next) => {
   try {
     const participants = await Participant.find();
@@ -20,7 +31,10 @@ export const getParticipants = async (req, res, next) => {
   }
 };
 
-// get a single participant by id
+/**
+ * Get a single participant by MongoDB _id.
+ * @route GET /api/participants/:id
+ */
 export const getParticipantById = async (req, res, next) => {
   try {
     const participant = await Participant.findById(req.params.id);
@@ -31,7 +45,10 @@ export const getParticipantById = async (req, res, next) => {
   }
 };
 
-// update participant details
+/**
+ * Update participant details (name, email, etc.).
+ * @route PUT /api/participants/:id
+ */
 export const updateParticipant = async (req, res, next) => {
   try {
     const participant = await Participant.findByIdAndUpdate(
@@ -46,7 +63,10 @@ export const updateParticipant = async (req, res, next) => {
   }
 };
 
-// remove a participant
+/**
+ * Remove a participant record.
+ * @route DELETE /api/participants/:id
+ */
 export const deleteParticipant = async (req, res, next) => {
   try {
     const participant = await Participant.findByIdAndDelete(req.params.id);

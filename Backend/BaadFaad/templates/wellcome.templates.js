@@ -1,3 +1,10 @@
+/**
+ * @file templates/wellcome.templates.js
+ * @description Branded HTML welcome email sent to new users after sign-up.
+ * Returns { subject, text, html } ready for Nodemailer.
+ */
+
+/** BaadFaad brand colour palette for email templates. */
 const BRAND_COLORS = {
 	primary: "#34d399",
 	primaryDark: "#10b981",
@@ -8,6 +15,13 @@ const BRAND_COLORS = {
 	border: "#d4d4d8",
 };
 
+/**
+ * Generate a welcome email template for a newly registered user.
+ * @param {object} opts
+ * @param {string} opts.name - user’s display name
+ * @param {string} opts.loginLink - URL to the app dashboard
+ * @returns {{ subject: string, text: string, html: string }}
+ */
 export const createWelcomeTemplate = ({
 	name = "there",
 	loginLink = "#",

@@ -1,3 +1,16 @@
+/**
+ * @fileoverview BaadFaad — Express Application Entry Point
+ * @description Main server file that bootstraps the entire backend:
+ *  1. Loads environment variables (dotenv)
+ *  2. Connects to MongoDB via Mongoose
+ *  3. Creates an HTTP server with Express
+ *  4. Initializes Socket.IO for real-time session events
+ *  5. Registers global middleware (CORS, JSON body parser)
+ *  6. Mounts all API route modules under /api/*
+ *  7. Starts listening on the configured PORT
+ *
+ * @module server
+ */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

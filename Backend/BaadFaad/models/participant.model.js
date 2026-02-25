@@ -1,3 +1,8 @@
+/**
+ * @file models/participant.model.js
+ * @description Participant model — an individual user entry within a session.
+ * Links back to the User model and records host status + join time.
+ */
 import mongoose from 'mongoose';
 
 const participantSchema = new mongoose.Schema(

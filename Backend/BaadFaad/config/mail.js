@@ -1,3 +1,9 @@
+/**
+ * @file config/mail.js
+ * @description Nodemailer transporter configuration.
+ * Supports both Gmail (default) and custom SMTP. Uses lazy initialization
+ * so the transporter is only created when actually needed.
+ */
 import nodemailer from "nodemailer";
 
 // Validation happens when transporter is actually used, not at import time

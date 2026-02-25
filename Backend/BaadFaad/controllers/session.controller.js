@@ -1,3 +1,9 @@
+/**
+ * @file controllers/session.controller.js
+ * @description Session controller — CRUD + join logic for live split sessions.
+ * Generates QR codes for easy participant onboarding and emits
+ * real-time Socket.IO events when participants join.
+ */
 import QRCode from 'qrcode';
 import Session from "../models/session.model.js";
 import { User } from "../models/userModel.js";
@@ -24,6 +30,13 @@ const generateQRCode = async (data) => {
   }
 };
 
+/**
+ * Create a new session linked to a split. Generates a QR code and
+ * auto-adds the creator as the first (host) participant.
+ * @route POST /api/session
+ * @param {import('express').Request} req - body: { name, splitId, userId? }
+ * @param {import('express').Response} res
+ */
 export const createSession = async (req, res) => {
   try {
     const { name, splitId } = req.body;
@@ -69,6 +82,10 @@ export const createSession = async (req, res) => {
   }
 };
 
+/**
+ * List all sessions ordered by creation date (newest first).
+ * @route GET /api/session
+ */
 export const getAllSessions = async (_req, res) => {
   try {
     const sessions = await Session.find().sort({ createdAt: -1 });
@@ -78,6 +95,10 @@ export const getAllSessions = async (_req, res) => {
   }
 };
 
+/**
+ * Fetch a single session by its MongoDB _id.
+ * @route GET /api/session/:id
+ */
 export const getSessionById = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id);
@@ -92,6 +113,10 @@ export const getSessionById = async (req, res) => {
   }
 };
 
+/**
+ * Fetch the session associated with a given splitId.
+ * @route GET /api/session/split/:splitId
+ */
 export const getSessionBySplitId = async (req, res) => {
   try {
     const session = await Session.findOne({ splitId: req.params.splitId })

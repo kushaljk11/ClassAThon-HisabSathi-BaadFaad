@@ -1,3 +1,8 @@
+/**
+ * @file models/receipt.model.js
+ * @description Receipt model — stores scanned or manually-entered bill data.
+ * Contains line items, totals, and optional restaurant metadata.
+ */
 import mongoose from 'mongoose';
 
 const receiptSchema = new mongoose.Schema(

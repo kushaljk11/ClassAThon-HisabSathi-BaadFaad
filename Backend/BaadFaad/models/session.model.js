@@ -1,5 +1,12 @@
+/**
+ * @file models/session.model.js
+ * @description Session model — represents a live bill-splitting session.
+ * Participants join via QR code; the first participant is the host.
+ * Each session is linked to exactly one Split and expires after a configurable duration.
+ */
 import mongoose from "mongoose";
 
+/** Default session lifetime before auto-expiry (hours). */
 const DEFAULT_SESSION_DURATION_HOURS = Number(process.env.SESSION_DURATION_HOURS || 24);
 
 const sessionSchema = new mongoose.Schema(

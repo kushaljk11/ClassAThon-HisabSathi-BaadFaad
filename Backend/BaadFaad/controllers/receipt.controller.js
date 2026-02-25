@@ -1,7 +1,16 @@
+/**
+ * @file controllers/receipt.controller.js
+ * @description Receipt controller — handles creation and retrieval of
+ * scanned/manual bill receipts stored in MongoDB.
+ */
 import Receipt from '../models/receipt.model.js';
 
-// @desc    Create a receipt (after scanning bill)
-// @route   POST /api/receipts
+/**
+ * Create a receipt from scanned or manual bill data.
+ * @route POST /api/receipts
+ * @param {import('express').Request} req - body: { restaurant?, address?, items, totalAmount }
+ * @param {import('express').Response} res
+ */
 export const createReceipt = async (req, res) => {
   try {
     const { restaurant, address, items, totalAmount } = req.body;
@@ -26,8 +35,10 @@ export const createReceipt = async (req, res) => {
   }
 };
 
-// @desc    Get receipt by ID
-// @route   GET /api/receipts/:id
+/**
+ * Retrieve a receipt by its MongoDB _id.
+ * @route GET /api/receipts/:id
+ */
 export const getReceiptById = async (req, res) => {
   try {
     const receipt = await Receipt.findById(req.params.id);

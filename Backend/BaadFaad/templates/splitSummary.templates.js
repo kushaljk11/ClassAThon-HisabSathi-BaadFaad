@@ -1,15 +1,24 @@
+/**
+ * @file templates/splitSummary.templates.js
+ * @description Branded HTML email template for detailed split summary.
+ * Includes per-participant breakdown table. Returns { subject, text, html }.
+ */
+
+/** BaadFaad brand colour palette for email templates. */
 const BRAND_COLORS = {
 	primary: "#34d399",
-	primaryDark: "#10b981",
-	textDark: "#0f172a",
-	textMuted: "#64748b",
+	primaryDark: "#059669",
 	pageBg: "#f4f4f5",
 	cardBg: "#ffffff",
-	border: "#d4d4d8",
+	border: "#e4e4e7",
+	textDark: "#18181b",
+	textMuted: "#71717a",
 };
 
 /**
- * Build a row for each participant in the breakdown table.
+ * Build HTML table rows for each participant's share breakdown.
+ * @param {Array<{name:string, share:number, amountPaid:number, balanceDue:number}>} participants
+ * @returns {string} HTML <tr> elements
  */
 function buildParticipantRows(participants) {
 	return participants

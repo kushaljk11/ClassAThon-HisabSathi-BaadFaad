@@ -1,3 +1,12 @@
+/**
+ * @file config/socket.js
+ * @description Socket.IO server setup and event handlers.
+ *
+ * Events:
+ *  - join-session-room / leave-session-room — room management
+ *  - host-navigate — host redirects all participants to a new page
+ *  - items-update  — host broadcasts live bill item changes
+ */
 import { Server } from "socket.io";
 
 let io = null;

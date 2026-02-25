@@ -1,8 +1,19 @@
+/**
+ * @file controllers/nudge.controller.js
+ * @description Nudge controller — creates payment reminder nudges, sends
+ * branded HTML emails to recipients, and exposes CRUD + split-summary endpoints.
+ */
 import Nudge from "../models/nudge.model.js";
 import transporter from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
+/**
+ * Create a nudge record and send a reminder email to the recipient.
+ * @route POST /api/nudge/send
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 export const createAndSendNudge = async (req, res) => {
   try {
     const {
@@ -77,6 +88,10 @@ export const createAndSendNudge = async (req, res) => {
   }
 };
 
+/**
+ * List all nudges, newest first.
+ * @route GET /api/nudge
+ */
 export const getAllNudges = async (_req, res) => {
   try {
     const nudges = await Nudge.find().sort({ createdAt: -1 });
@@ -86,6 +101,10 @@ export const getAllNudges = async (_req, res) => {
   }
 };
 
+/**
+ * Get a single nudge by MongoDB _id.
+ * @route GET /api/nudge/:id
+ */
 export const getNudgeById = async (req, res) => {
   try {
     const nudge = await Nudge.findById(req.params.id);
@@ -158,6 +177,11 @@ export const sendSplitSummary = async (req, res) => {
   }
 };
 
+/**
+ * Update the delivery status of a nudge.
+ * @route PATCH /api/nudge/:id/status
+ * @param {import('express').Request} req - body: { status: 'sent'|'failed'|'pending' }
+ */
 export const updateNudgeStatus = async (req, res) => {
   try {
     const { status } = req.body;

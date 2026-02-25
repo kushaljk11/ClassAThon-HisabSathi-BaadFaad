@@ -1,3 +1,8 @@
+/**
+ * @file models/nudge.model.js
+ * @description Nudge model — tracks payment reminder emails sent to participants.
+ * Records delivery status and error info for debugging.
+ */
 import mongoose from "mongoose";
 
 const nudgeSchema = new mongoose.Schema(

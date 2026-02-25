@@ -1,3 +1,8 @@
+/**
+ * @file controllers/group.controller.js
+ * @description Group controller — CRUD operations for persistent expense-sharing
+ * groups. Supports QR-based joining, member management, and soft-deactivation.
+ */
 import mongoose from 'mongoose';
 import QRCode from 'qrcode';
 import Group from '../models/group.model.js';
