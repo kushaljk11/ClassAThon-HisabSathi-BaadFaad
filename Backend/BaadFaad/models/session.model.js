@@ -25,6 +25,12 @@ const sessionSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Participant",
         },
+        name: {
+          type: String,
+        },
+        email: {
+          type: String,
+        },
         joinedAt: {
           type: Date,
           default: Date.now,
