@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import connectDB from './config/database.js';
 import { initSocket } from './config/socket.js';
@@ -17,6 +19,16 @@ import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
+import authRoutes from './routes/authRoute.js';
+import billRoutes from './routes/bill.routes.js';
+
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load env vars from backend folder regardless of process.cwd()
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 connectDB();
 
@@ -40,6 +52,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/splits', splitRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use("/api/session", sessionRoutes);
+app.use('/api/bills', billRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server is running!');
