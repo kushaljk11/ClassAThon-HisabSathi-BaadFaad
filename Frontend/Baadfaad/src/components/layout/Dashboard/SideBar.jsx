@@ -13,7 +13,7 @@ import { useAuth } from "../../../context/authContext";
 const menuItems = [
   { label: "Home", icon: FaThLarge, to: "/dashboard" },
   { label: "Create Split", icon: FaHistory, to: "/split/create" },
-  { label: "Group", icon: FaUserFriends, to: "/group" },
+  { label: "Group", icon: FaUserFriends, to: "/group/details" },
   { label: "About", icon: FaUsers, to: "/about" },
   { label: "Contact", icon: FaCog, to: "/contact" },
 ];
@@ -35,11 +35,11 @@ export default function SideBar({ isOpen, onClose }) {
       {/* Sidebar */}
       <aside
         className={`fixed top-16 z-40 flex h-[calc(100vh-4rem)] w-56 flex-col border-zinc-200 bg-linear-to-b from-white to-zinc-50 shadow-2xl transition-transform duration-300 md:left-0 md:border-r md:translate-x-0 ${
-          isOpen ? "right-0 translate-x-0 border-l" : "right-0 translate-x-full md:translate-x-0"
+          isOpen
+            ? "right-0 translate-x-0 border-l"
+            : "right-0 translate-x-full md:translate-x-0"
         }`}
       >
-
-
         {/* Navigation Menu */}
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
           {menuItems.map(({ label, icon: Icon, to }) => (
@@ -58,12 +58,18 @@ export default function SideBar({ isOpen, onClose }) {
               {({ isActive }) => (
                 <>
                   <div className="flex items-center gap-3">
-                    <Icon className={`text-lg transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} />
+                    <Icon
+                      className={`text-lg transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`}
+                    />
                     <span>{label}</span>
                   </div>
-                  <FaChevronRight className={`text-xs transition-all duration-200 ${
-                    isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-60 group-hover:translate-x-0'
-                  }`} />
+                  <FaChevronRight
+                    className={`text-xs transition-all duration-200 ${
+                      isActive
+                        ? "opacity-100 translate-x-0"
+                        : "opacity-0 -translate-x-2 group-hover:opacity-60 group-hover:translate-x-0"
+                    }`}
+                  />
                 </>
               )}
             </NavLink>
@@ -76,7 +82,7 @@ export default function SideBar({ isOpen, onClose }) {
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
             <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full -ml-10 -mb-10"></div>
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
                 <FaCrown className="text-yellow-300 text-lg" />

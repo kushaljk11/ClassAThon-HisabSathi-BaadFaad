@@ -14,6 +14,8 @@ import Settlement from './pages/split/Settelment'
 import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
 import Login from './pages/Auth/Login'
+import JoinSession from './pages/Dashboard/JoinSession'
+import JoinSplit from './pages/split/JoinSplit'
 import AuthCallback from './pages/Auth/AuthCallback'
 import { AuthProvider, useAuth } from './context/authContext'
 import ProtectedRoute from './components/common/ProtectedRoute'
@@ -43,6 +45,8 @@ function AppContent() {
         
         {/* Protected Routes - Require Authentication */}
         <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/join-session" element={<ProtectedRoute><JoinSession /></ProtectedRoute>} />
+        <Route path="/split/join" element={<ProtectedRoute><JoinSplit /></ProtectedRoute>} />
         <Route path="/split/create" element={<ProtectedRoute><CreateSplit /></ProtectedRoute>} />
         <Route path="/split/scan" element={<ProtectedRoute><ScanBill /></ProtectedRoute>} />
         <Route path="/split/ready" element={<ProtectedRoute><ReadyToSplit /></ProtectedRoute>} />

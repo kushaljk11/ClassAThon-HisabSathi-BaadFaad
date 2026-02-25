@@ -225,6 +225,77 @@ export const updateGroup = async (req, res) => {
 };
 
 /**
+ * Public endpoint for joining a group via QR code
+ * POST /api/groups/:groupId/join
+ * Body: { userId?, name?, email? }
+ */
+export const joinGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { userId, name, email } = req.body;
+
+    console.log("=== JOIN GROUP REQUEST ===");
+    console.log("Group ID:", groupId);
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
+    if (!isValidObjectId(groupId)) {
+      return sendError(res, 400, 'Invalid groupId');
+    }
+
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      return sendError(res, 404, 'Group not found');
+    }
+
+    if (!group.isActive) {
+      return sendError(res, 400, 'Group is not active');
+    }
+
+    let memberIdToAdd = userId;
+
+    // If no userId provided, check for name to create guest participant
+    if (!userId && name) {
+      // For guest users, we'll track them differently or skip for groups
+      return sendError(res, 400, 'Guest participants not yet supported for groups. Please provide userId.');
+    }
+
+    if (!memberIdToAdd || !isValidObjectId(memberIdToAdd)) {
+      return sendError(res, 400, 'Valid userId is required');
+    }
+
+    // Check if user is already a member
+    if (group.members.includes(memberIdToAdd)) {
+      await group.populate('createdBy', 'fullName email avatarUrl');
+      await group.populate('members', 'fullName email avatarUrl');
+      return res.status(200).json({
+        success: true,
+        message: 'Already a member of this group',
+        data: group.toJSON(),
+      });
+    }
+
+    group.members.push(memberIdToAdd);
+    await group.save();
+
+    await group.populate('createdBy', 'fullName email avatarUrl');
+    await group.populate('members', 'fullName email avatarUrl');
+
+    console.log("User joined group successfully");
+    return res.status(200).json({
+      success: true,
+      message: 'Joined group successfully',
+      data: group.toJSON(),
+    });
+  } catch (error) {
+    console.error("=== JOIN GROUP ERROR ===");
+    console.error("Error:", error.message);
+    const formattedError = formatMongooseError(error);
+    return sendError(res, formattedError.statusCode, formattedError.message);
+  }
+};
+
+/**
  * Adds a member to the group.
  * POST /api/groups/:groupId/members
  * Body: { userId }

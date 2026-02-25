@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
+import { FaSpinner } from "react-icons/fa";
+import api from "../../config/config";
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -14,9 +16,38 @@ const COLORS = [
 
 export default function SessionLobby() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState(null);
+  const [split, setSplit] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const splitName = localStorage.getItem("splitName") || "Split Session";
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (sessionId) {
+          const sessionRes = await api.get(`/session/${sessionId}`);
+          setSession(sessionRes.data);
+        }
+        if (splitId) {
+          const splitRes = await api.get(`/splits/${splitId}`);
+          setSplit(splitRes.data.split);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sessionId, splitId]);
+
+  const splitName = session?.name || "Split Session";
 
   // Static placeholder participants — will be replaced when sessions are integrated
   const participants = [
@@ -24,13 +55,24 @@ export default function SessionLobby() {
   ];
 
   const handleContinueToScan = () => {
-    navigate("/split/scan");
+    navigate(`/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
   };
 
   const handleLeave = () => {
-    localStorage.removeItem("splitName");
     navigate("/dashboard");
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <main className="ml-0 flex-1 px-10 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-10 flex items-center justify-center">
+          <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -109,7 +151,7 @@ export default function SessionLobby() {
               <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
                 Continue to Scan Bill
               </button>
-              <button onClick={handleLeave} className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+              <button onClick={handleLeave} className="w-full rounded-xl bg-red-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
                 Leave
               </button>
             </div>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaCheckCircle, FaRegPaperPlane, FaWallet, FaSpinner } from "react-icons/fa";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import api from "../../config/config";
+import toast, { Toaster } from "react-hot-toast";
 
 const AVATAR_COLORS = [
   "bg-emerald-200",
@@ -16,23 +17,35 @@ const AVATAR_COLORS = [
 
 export default function SplitBreakdown() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [split, setSplit] = useState(null);
+  const [session, setSession] = useState(null);
   const [notifying, setNotifying] = useState(false);
 
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
+
   useEffect(() => {
-    const storedSplit = localStorage.getItem("currentSplit");
-    if (storedSplit) {
-      const parsed = JSON.parse(storedSplit);
-      setSplit(parsed);
-      // Fetch fresh data if we have an ID
-      if (parsed._id) {
-        api.get(`/splits/${parsed._id}`).then((res) => {
-          setSplit(res.data.split);
-        }).catch(() => {});
+    const fetchData = async () => {
+      try {
+        if (splitId) {
+          const splitRes = await api.get(`/splits/${splitId}`);
+          setSplit(splitRes.data.split);
+        }
+        if (sessionId) {
+          const sessionRes = await api.get(`/session/${sessionId}`);
+          setSession(sessionRes.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        toast.error("Failed to load split data");
       }
-    }
-  }, []);
+    };
+
+    fetchData();
+  }, [splitId, sessionId]);
 
   const totalAmount = split?.totalAmount || 0;
   const breakdown = split?.breakdown || [];
@@ -56,30 +69,74 @@ export default function SplitBreakdown() {
   });
 
   const handleFinishAndNotify = async () => {
-    if (!split?._id) return;
+    if (!split?._id) {
+      toast.error("No split data found");
+      return;
+    }
+    
     setNotifying(true);
+    const toastId = toast.loading("Sending notifications to all participants...");
+    
     try {
       await api.post(`/splits/${split._id}/finalize`);
-      // Send nudge to all pending participants
+      
+      // Send nudge/email to all participants with pending amounts
+      let emailsSent = 0;
+      let emailsFailed = 0;
+      
       for (const b of breakdown) {
         const name = b.user?.name || b.participant?.name || "Friend";
         const email = b.user?.email || b.participant?.email;
+        
         if (email && b.amount > 0) {
-          await api.post("/nudge/send", {
-            recipientName: name,
-            recipientEmail: email,
-            senderName: "BaadFaad",
-            groupName: localStorage.getItem("splitName") || "Split",
-            amount: b.amount,
-          }).catch(() => {}); // don't block on nudge failures
+          try {
+            await api.post("/nudge/send", {
+              recipientName: name,
+              recipientEmail: email,
+              senderName: "BaadFaad",
+              groupName: session?.name || "Split",
+              amount: b.amount,
+            });
+            emailsSent++;
+          } catch (err) {
+            console.error(`Failed to send email to ${email}:`, err);
+            emailsFailed++;
+          }
         }
       }
-      localStorage.removeItem("currentSplit");
-
-      localStorage.removeItem("splitName");
-      navigate("/dashboard");
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(toastId);
+      
+      if (emailsSent > 0) {
+        toast.success(
+          `Successfully sent notifications to ${emailsSent} participant${emailsSent > 1 ? 's' : ''}!`,
+          { duration: 4000 }
+        );
+      }
+      
+      if (emailsFailed > 0) {
+        toast.error(
+          `Failed to send ${emailsFailed} notification${emailsFailed > 1 ? 's' : ''}`,
+          { duration: 3000 }
+        );
+      }
+      
+      if (emailsSent === 0 && emailsFailed === 0) {
+        toast.success("Split finalized successfully!", { duration: 3000 });
+      }
+      
+      // Navigate after a short delay to let user see the toast
+      setTimeout(() => {
+        navigate(`/split/calculated?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
+      }, 1500);
     } catch (err) {
       console.error("Finalize failed:", err);
+      toast.dismiss(toastId);
+      toast.error(
+        err.response?.data?.message || "Failed to finalize split. Please try again.",
+        { duration: 4000 }
+      );
     } finally {
       setNotifying(false);
     }
@@ -87,11 +144,12 @@ export default function SplitBreakdown() {
 
   return (
     <div className="min-h-screen bg-zinc-100">
+      <Toaster position="top-right" reverseOrder={false} />
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
       <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
-          <h1 className="text-5xl font-bold text-slate-900">Split Breakdown</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Split Breakdown</h1>
           <p className="mt-2 text-sm text-slate-500">
             Detailed breakdown of shared expenses for Weekend Getaway
           </p>
@@ -106,7 +164,7 @@ export default function SplitBreakdown() {
                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">
                   Total Bill Amount
                 </p>
-                <p className="mt-1 text-6xl font-bold text-slate-900">Rs {totalAmount.toLocaleString()}</p>
+                <p className="mt-1 text-4xl font-bold text-slate-900">Rs {totalAmount.toLocaleString()}</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Shared among {participantCount} participants
                 </p>
@@ -198,7 +256,7 @@ export default function SplitBreakdown() {
                 type="button"
                 onClick={handleFinishAndNotify}
                 disabled={notifying}
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-8 py-3 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-8 cursor-pointer py-3 text-base font-bold text-white shadow-lg shadow-emerald-300/40 disabled:opacity-50"
               >
                 {notifying ? <FaSpinner className="animate-spin text-xs" /> : null}
                 Finish &amp; Notify All

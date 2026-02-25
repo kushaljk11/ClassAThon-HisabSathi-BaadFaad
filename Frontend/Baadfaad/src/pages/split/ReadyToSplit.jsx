@@ -1,26 +1,66 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import { FaArrowRight, FaCopy, FaQrcode } from "react-icons/fa";
+import { FaArrowRight, FaCopy, FaQrcode, FaSpinner } from "react-icons/fa";
+import api from "../../config/config";
 
 export default function ReadyToSplit() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const splitName = localStorage.getItem("splitName") || "Split Session";
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      if (!sessionId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await api.get(`/session/${sessionId}`);
+        setSession(response.data);
+      } catch (err) {
+        console.error("Failed to fetch session:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, [sessionId]);
+
+  const splitName = session?.name || "Split Session";
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/split/join`;
+    const link = `${window.location.origin}/split/join?splitId=${splitId}&sessionId=${sessionId}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleGoToLobby = () => {
-    navigate("/split/joined");
+    navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-zinc-50">
+        <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12 flex items-center justify-center">
+          <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
@@ -54,9 +94,17 @@ export default function ReadyToSplit() {
               
               <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50 p-6">
                 <div className="rounded-xl bg-white p-4 shadow-md">
-                  <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-lg bg-zinc-100">
-                    <FaQrcode className="text-5xl text-slate-400" />
-                  </div>
+                  {session?.qrCode ? (
+                    <img 
+                      src={session.qrCode} 
+                      alt="Session QR Code" 
+                      className="mx-auto h-36 w-36 rounded-lg"
+                    />
+                  ) : (
+                    <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-lg bg-zinc-100">
+                      <FaQrcode className="text-5xl text-slate-400" />
+                    </div>
+                  )}
                   <p className="mt-3 text-center text-xs text-slate-400">
                     Scan to join this split session
                   </p>
@@ -69,7 +117,9 @@ export default function ReadyToSplit() {
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
                 <span className="font-semibold text-slate-600">Live Update</span>
               </div>
-              <span className="font-bold text-emerald-600">0 Joined</span>
+              <span className="font-bold text-emerald-600">
+                {session?.participants?.length || 0} Joined
+              </span>
             </div>
 
             <div className="mt-5 text-center">

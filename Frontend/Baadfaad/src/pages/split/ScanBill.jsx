@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash, FaSpinner } from "react-icons/fa";
@@ -7,6 +7,7 @@ import api from "../../config/config";
 
 export default function ScanBill() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -17,6 +18,10 @@ export default function ScanBill() {
   const [itemQuantity, setItemQuantity] = useState("1");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -84,6 +89,11 @@ export default function ScanBill() {
   const hasItems = scannedData || manualItems.length > 0;
 
   const handleContinue = async () => {
+    if (!splitId) {
+      setError("No split ID found. Please start from the beginning.");
+      return;
+    }
+
     // Build all items from scanned + manual
     const allItems = [
       ...(scannedData?.items || []).map((item) => ({
@@ -103,7 +113,7 @@ export default function ScanBill() {
     setSaving(true);
     setError("");
     try {
-      // Create receipt in backend
+      // Create receipt in backend database
       const receiptRes = await api.post("/receipts", {
         restaurant: scannedData?.restaurant || "",
         address: scannedData?.address || "",
@@ -111,20 +121,15 @@ export default function ScanBill() {
         totalAmount,
       });
 
-      // Store receipt for next pages
-      localStorage.setItem("currentReceipt", JSON.stringify(receiptRes.data.receipt));
-
-      // Create a split (equal by default)
-      const splitRes = await api.post("/splits", {
+      // Update the existing split in database with receipt and totalAmount
+      await api.put(`/splits/${splitId}`, {
         receiptId: receiptRes.data.receipt._id,
-        splitType: "equal",
         totalAmount,
-        breakdown: [],
+        splitType: "equal",
       });
 
-      localStorage.setItem("currentSplit", JSON.stringify(splitRes.data.split));
-
-      navigate("/split/calculated");
+      // Navigate with IDs - data is in database
+      navigate(`/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save receipt and calculate split");
     } finally {
@@ -395,7 +400,7 @@ export default function ScanBill() {
                 type="button"
                 onClick={handleContinue}
                 disabled={saving}
-                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? <FaSpinner className="animate-spin" /> : null}
                 Calculate Split

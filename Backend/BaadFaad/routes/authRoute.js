@@ -1,5 +1,6 @@
 import express from "express";
 import {getPassport} from "../config/passport.js";
+import {passportUse} from "../config/passport.js";
 import  {login}  from "../controllers/authController.js";
 
 
@@ -13,6 +14,7 @@ router.get(
   (req, res, next) => {
     getPassport().authenticate("google", { scope: ["profile", "email"] })(req, res, next);
   }
+  passportUse.authenticate("google", { scope: ["profile", "email"] })
 );
 
 router.get(
@@ -20,6 +22,7 @@ router.get(
   (req, res, next) => {
     getPassport().authenticate("google", { session: false })(req, res, next);
   },
+  passportUse.authenticate("google", { session: false }),
   (req, res) => {
     const { token, user } = req.user;
     res.redirect(

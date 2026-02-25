@@ -15,6 +15,26 @@ const sessionSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    participants: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        participant: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Participant",
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    qrCode: {
+      type: String,
+      default: '',
+    },
     startDate: {
       type: Date,
       default: Date.now,
@@ -33,5 +53,10 @@ const sessionSchema = new mongoose.Schema(
 );
 
 const Session = mongoose.model("Session", sessionSchema);
+
+// Drop old indexes if they exist
+Session.collection.dropIndex("sessionCode_1").catch(() => {
+  // Ignore error if index doesn't exist
+});
 
 export default Session;

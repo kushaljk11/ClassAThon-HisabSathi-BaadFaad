@@ -10,6 +10,9 @@ import { SPLIT_STATUS } from '../config/constants.js';
 // @access  Private
 export const createSplit = async (req, res) => {
   try {
+    console.log("=== CREATE SPLIT REQUEST ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    
     const { receiptId, splitType, breakdown, participants: bodyParticipants } = req.body;
 
     // Receipt is optional — if provided, look it up for totalAmount

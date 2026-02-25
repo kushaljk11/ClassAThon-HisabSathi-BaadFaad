@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import {
@@ -14,9 +14,11 @@ import {
 import esewaLogo from "../../assets/esewa.png";
 import khaltiLogo from "../../assets/khalti.png";
 import api from "../../config/config";
+import toast from "react-hot-toast";
 
 export default function SplitCalculated() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cleanRoundMode, setCleanRoundMode] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("esewa");
@@ -26,13 +28,32 @@ export default function SplitCalculated() {
   const [newTag, setNewTag] = useState("");
   const [finishing, setFinishing] = useState(false);
 
-  // Load split data from localStorage (saved by ScanBill) or fetch from API
   const [split, setSplit] = useState(null);
+  const [session, setSession] = useState(null);
+
+  const splitId = searchParams.get("splitId");
+  const sessionId = searchParams.get("sessionId");
+  const type = searchParams.get("type");
 
   useEffect(() => {
-    const storedSplit = localStorage.getItem("currentSplit");
-    if (storedSplit) setSplit(JSON.parse(storedSplit));
-  }, []);
+    const fetchData = async () => {
+      try {
+        if (splitId) {
+          const splitRes = await api.get(`/splits/${splitId}`);
+          setSplit(splitRes.data.split);
+        }
+        if (sessionId) {
+          const sessionRes = await api.get(`/session/${sessionId}`);
+          setSession(sessionRes.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        toast.error("Failed to load split data");
+      }
+    };
+
+    fetchData();
+  }, [splitId, sessionId]);
 
   // Derived from API data or fallback
   const totalAmount = split?.totalAmount || 0;
@@ -83,13 +104,27 @@ export default function SplitCalculated() {
     setFinishing(true);
     try {
       await api.post(`/splits/${split._id}/finalize`);
-      // Clean up stored data
-      localStorage.removeItem("currentSplit");
-
-      localStorage.removeItem("splitName");
+      
+      // Check if this was a group split based on type param
+      if (type === "group" && session?.name) {
+        // Create a group for recurring expenses
+        try {
+          await api.post("/groups", {
+            name: session.name,
+            description: `Group created from split on ${new Date().toLocaleDateString()}`,
+            members: breakdown.map(b => b.user?._id || b.participant?._id).filter(Boolean),
+          });
+          toast.success("Group created successfully!");
+        } catch (err) {
+          console.error("Group creation failed:", err);
+          toast.error("Failed to create group");
+        }
+      }
+      
       navigate("/dashboard");
     } catch (err) {
       console.error("Finalize failed:", err);
+      toast.error("Failed to finalize split");
       navigate("/dashboard");
     } finally {
       setFinishing(false);
