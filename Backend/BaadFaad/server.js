@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import mailRoutes from './routes/mail.routes.js';
 import nudgeRoutes from './routes/nudge.route.js';
+import groupRoutes from './routes/group.routes.js';
 
 connectDB();
 
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use("/api/mail", mailRoutes);
 app.use("/api/nudge", nudgeRoutes);
+app.use('/api/groups', groupRoutes);
 
 app.get('/', (req, res) => { 
 res.send('Server is running!'); 
