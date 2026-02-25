@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaArrowRight, FaCopy, FaQrcode, FaSpinner } from "react-icons/fa";
 import api from "../../config/config";
+import useSessionSocket from "../../hooks/useSessionSocket";
 
 export default function ReadyToSplit() {
   const navigate = useNavigate();
@@ -36,6 +37,13 @@ export default function ReadyToSplit() {
 
     fetchSession();
   }, [sessionId]);
+
+  const handleParticipantJoined = useCallback((data) => {
+    if (data.session) {
+      setSession(data.session);
+    }
+  }, []);
+  useSessionSocket(sessionId, handleParticipantJoined);
 
   const splitName = session?.name || "Split Session";
 

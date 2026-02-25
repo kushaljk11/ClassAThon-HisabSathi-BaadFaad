@@ -11,6 +11,7 @@ export default function JoinSplit() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const currentUserId = user?._id || user?.id;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [joining, setJoining] = useState(false);
 
@@ -20,10 +21,10 @@ export default function JoinSplit() {
 
   useEffect(() => {
     // Auto-join if user is logged in and has sessionId
-    if (user?._id && sessionId) {
+    if (currentUserId && sessionId) {
       handleJoin();
     }
-  }, [user, sessionId]);
+  }, [currentUserId, sessionId]);
 
   const handleJoin = async () => {
     if (!sessionId) {
@@ -31,7 +32,7 @@ export default function JoinSplit() {
       return;
     }
 
-    if (!user?._id) {
+    if (!currentUserId) {
       toast.error("You must be logged in to join a session");
       navigate("/login");
       return;
@@ -41,7 +42,7 @@ export default function JoinSplit() {
     const toastId = toast.loading("Joining session...");
 
     try {
-      const payload = { userId: user._id };
+      const payload = { userId: currentUserId };
 
       await api.post(`/session/join/${sessionId}`, payload);
 

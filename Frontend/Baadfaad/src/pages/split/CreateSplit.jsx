@@ -33,10 +33,12 @@ export default function CreateSplit() {
       
       const split = splitRes.data.split;
       
-      // Create a session for this split
+      // Create a session for this split, passing userId so host is auto-added
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const sessionRes = await api.post("/session", {
         name: splitName.trim(),
         splitId: split._id,
+        userId: userData._id || userData.id,
       });
       
       const session = sessionRes.data.session;
@@ -77,10 +79,12 @@ export default function CreateSplit() {
       
       const split = splitRes.data.split;
       
-      // Create a session for tracking (groups also use sessions)
+      // Create a session for tracking (groups also use sessions), passing userId so host is auto-added
+      const userData2 = JSON.parse(localStorage.getItem("user") || "{}");
       const sessionRes = await api.post("/session", {
         name: splitName.trim(),
         splitId: split._id,
+        userId: userData2._id || userData2.id,
       });
       
       const session = sessionRes.data.session;

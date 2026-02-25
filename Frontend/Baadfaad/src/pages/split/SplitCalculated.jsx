@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
@@ -10,11 +10,38 @@ import {
   FaTimes,
   FaCalculator,
   FaSpinner,
+  FaCheckCircle,
+  FaHourglassHalf,
+  FaTimesCircle,
 } from "react-icons/fa";
 import esewaLogo from "../../assets/esewa.png";
 import khaltiLogo from "../../assets/khalti.png";
 import api from "../../config/config";
 import toast from "react-hot-toast";
+import useSessionSocket from "../../hooks/useSessionSocket";
+
+function statusBadge(status) {
+  switch (status) {
+    case "paid":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+          <FaCheckCircle className="text-[10px]" /> Paid
+        </span>
+      );
+    case "partial":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+          <FaHourglassHalf className="text-[10px]" /> Partial
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-600">
+          <FaTimesCircle className="text-[10px]" /> Unpaid
+        </span>
+      );
+  }
+}
 
 export default function SplitCalculated() {
   const navigate = useNavigate();
@@ -35,49 +62,74 @@ export default function SplitCalculated() {
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
 
+  const fetchSplit = useCallback(async () => {
+    try {
+      if (splitId) {
+        const splitRes = await api.get(`/splits/${splitId}`);
+        setSplit(splitRes.data.split);
+      }
+    } catch {
+      toast.error("Failed to load split data");
+    }
+  }, [splitId]);
+
   useEffect(() => {
     const fetchData = async () => {
+      await fetchSplit();
       try {
-        if (splitId) {
-          const splitRes = await api.get(`/splits/${splitId}`);
-          setSplit(splitRes.data.split);
-        }
         if (sessionId) {
           const sessionRes = await api.get(`/session/${sessionId}`);
           setSession(sessionRes.data);
         }
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        toast.error("Failed to load split data");
+      } catch {
+        toast.error("Failed to load session data");
       }
     };
-
     fetchData();
-  }, [splitId, sessionId]);
+  }, [splitId, sessionId, fetchSplit]);
 
-  // Derived from API data or fallback
+  // Socket: listen for real-time navigation events (in case host pushes further)
+  const onHostNavigate = useCallback(
+    (data) => {
+      if (data?.path) navigate(data.path);
+    },
+    [navigate]
+  );
+  useSessionSocket(sessionId, null, onHostNavigate, null);
+
+  // Derived from API data
   const totalAmount = split?.totalAmount || 0;
   const breakdown = split?.breakdown || [];
 
-  // Find the "big spender" — participant with highest amount
+  // Find the "big spender" — participant who paid the most
   const bigSpender = breakdown.length
-    ? breakdown.reduce((max, b) => (b.amount > max.amount ? b : max), breakdown[0])
+    ? breakdown.reduce((max, b) => ((b.amountPaid || 0) > (max.amountPaid || 0) ? b : max), breakdown[0])
+    : null;
+  const bigSpenderName = bigSpender
+    ? bigSpender.name || bigSpender.user?.name || bigSpender.participant?.name || "Someone"
     : null;
 
+  // Build participant list with real backend data
   const participants = breakdown.map((b) => {
-    const name = b.user?.name || b.participant?.name || "Participant";
+    const name = b.name || b.user?.name || b.participant?.name || "Participant";
+    const amountPaid = b.amountPaid || 0;
+    const share = cleanRoundMode ? Math.round(b.amount / 10) * 10 : b.amount;
+    const balanceDue = Math.max(0, share - amountPaid);
+    const paymentStatus = b.paymentStatus || "unpaid";
+    const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
     return {
       name,
-      subtitle: bigSpender ? `Owes ${bigSpender.user?.name || bigSpender.participant?.name || "payer"}` : "",
-      amount: cleanRoundMode ? Math.round(b.amount / 10) * 10 : b.amount,
-      payment: selectedPayment === "esewa" ? "eSewa" : "Khalti",
-      paymentColor:
-        selectedPayment === "esewa"
-          ? "bg-green-100 text-green-700"
-          : "bg-purple-100 text-purple-700",
-      avatar: "👤",
+      initials,
+      share,
+      amountPaid,
+      balanceDue,
+      paymentStatus,
     };
   });
+
+  // Count settled vs pending
+  const settledCount = participants.filter((p) => p.paymentStatus === "paid").length;
+  const pendingCount = participants.length - settledCount;
 
   const handleToggleTag = (tag) => {
     if (selectedTags.includes(tag)) {
@@ -104,26 +156,26 @@ export default function SplitCalculated() {
     setFinishing(true);
     try {
       await api.post(`/splits/${split._id}/finalize`);
-      
+
+      const sessionName = session?.name || session?.session?.name;
+
       // Check if this was a group split based on type param
-      if (type === "group" && session?.name) {
-        // Create a group for recurring expenses
+      if (type === "group" && sessionName) {
         try {
           await api.post("/groups", {
-            name: session.name,
+            name: sessionName,
             description: `Group created from split on ${new Date().toLocaleDateString()}`,
-            members: breakdown.map(b => b.user?._id || b.participant?._id).filter(Boolean),
+            members: breakdown.map((b) => b.user?._id || b.participant?._id).filter(Boolean),
           });
           toast.success("Group created successfully!");
-        } catch (err) {
-          console.error("Group creation failed:", err);
+        } catch {
           toast.error("Failed to create group");
         }
       }
-      
+
+      toast.success("Split archived!");
       navigate("/dashboard");
-    } catch (err) {
-      console.error("Finalize failed:", err);
+    } catch {
       toast.error("Failed to finalize split");
       navigate("/dashboard");
     } finally {
@@ -173,7 +225,9 @@ export default function SplitCalculated() {
                     </h3>
                   </div>
                   <p className="mt-1 text-xs text-slate-600 md:text-sm">
-                    {bigSpender ? `${bigSpender.user?.name || bigSpender.participant?.name || 'Someone'} paid Rs. ${bigSpender.amount.toLocaleString()}` : 'No data yet'}
+                    {bigSpenderName
+                      ? `${bigSpenderName} paid Rs. ${(bigSpender?.amountPaid || 0).toLocaleString()} of Rs. ${(bigSpender?.amount || 0).toLocaleString()}`
+                      : "No data yet"}
                   </p>
                   <span className="mt-2 inline-block rounded-full bg-amber-200 px-2 py-1 text-xs font-bold uppercase tracking-wider text-amber-800 md:px-3">
                     VIP CONTRIBUTOR
@@ -333,36 +387,48 @@ export default function SplitCalculated() {
                   Settlement Breakdown
                 </h2>
               </div>
-              <span className="text-xs font-semibold text-slate-500 md:text-sm">
-                {participants.length} Participants
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-emerald-600 md:text-sm">
+                  {settledCount} Settled
+                </span>
+                {pendingCount > 0 && (
+                  <span className="text-xs font-semibold text-red-500 md:text-sm">
+                    {pendingCount} Pending
+                  </span>
+                )}
+              </div>
             </div>
             <div className="space-y-2 md:space-y-3">
-              {participants.map((participant, index) => (
+              {participants.map((p, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 md:px-4 md:py-3"
                 >
                   <div className="flex items-center gap-2 md:gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-sm md:h-10 md:w-10 md:text-lg">
-                      {participant.avatar}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 md:h-10 md:w-10 md:text-sm">
+                      {p.initials}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-900 md:text-sm">
-                        {participant.name}
+                        {p.name}
                       </p>
-                      <p className="text-xs text-slate-500">{participant.subtitle}</p>
+                      <p className="text-xs text-slate-500">
+                        Share: Rs. {p.share.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 md:flex-row md:items-center md:gap-3">
-                    <p className="text-sm font-bold text-slate-900 md:text-base">
-                      Rs. {participant.amount.toLocaleString()}
-                    </p>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${participant.paymentColor}`}
-                    >
-                      {participant.payment}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">
+                        Paid: <span className="font-bold text-emerald-600">Rs. {p.amountPaid.toLocaleString()}</span>
+                      </p>
+                      {p.balanceDue > 0 && (
+                        <p className="text-xs text-red-500 font-semibold">
+                          Due: Rs. {p.balanceDue.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    {statusBadge(p.paymentStatus)}
                   </div>
                 </div>
               ))}

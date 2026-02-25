@@ -21,7 +21,6 @@ const Login = () => {
     const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
     const googleAuthUrl = `${backendBaseUrl}/api/auth/google`;
     window.location.href = googleAuthUrl;
-    console.log('Continue with Google clicked');
   };
 
   const handleContinue = async () => {
