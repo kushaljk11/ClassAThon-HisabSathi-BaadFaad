@@ -5,9 +5,6 @@
  */
 import dns from 'dns';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '.env.example' });
 
 // cannot reach the system DNS (prevents `querySrv ECONNREFUSED`).
 dns.setServers(['8.8.8.8', '1.1.1.1']);

@@ -1,18 +1,16 @@
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 
-dotenv.config({ path: '.env' });
-
-const requiredEnvVars = ["EMAIL_USER", "EMAIL_PASS"];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Missing required environment variable: ${envVar}`);
+// Validation happens when transporter is actually used, not at import time
+const getTransporterConfig = () => {
+  const requiredEnvVars = ["EMAIL_USER", "EMAIL_PASS"];
+  
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      throw new Error(`Missing required environment variable: ${envVar}`);
+    }
   }
-}
 
-const transporter = nodemailer.createTransport(
-  process.env.SMTP_HOST
+  return process.env.SMTP_HOST
     ? {
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
@@ -28,15 +26,24 @@ const transporter = nodemailer.createTransport(
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
-      }
-);
+      };
+};
+
+// Lazy initialization - transporter is created only when actually used
+let transporter = null;
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport(getTransporterConfig());
+  }
+  return transporter;
+};
 
 export const verifyMailConnection = async () => {
-  await transporter.verify();
+  await getTransporter().verify();
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
-  return transporter.sendMail({
+  return getTransporter().sendMail({
     from: `"${fromName}" <${process.env.EMAIL_USER}>`,
     to,
     subject,
@@ -45,4 +52,4 @@ export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" 
   });
 };
 
-export default transporter;
+export default { getTransporter, verifyMailConnection, sendMail };

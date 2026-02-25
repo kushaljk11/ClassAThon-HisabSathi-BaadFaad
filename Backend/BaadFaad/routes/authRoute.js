@@ -1,5 +1,5 @@
 import express from "express";
-import {passportUse} from "../config/passport.js";
+import {getPassport} from "../config/passport.js";
 import  {login}  from "../controllers/authController.js";
 
 
@@ -10,12 +10,16 @@ router.post("/login", login);
 /* Google OAuth */
 router.get(
   "/google",
-  passportUse.authenticate("google", { scope: ["profile", "email"] })
+  (req, res, next) => {
+    getPassport().authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  }
 );
 
 router.get(
   "/google/callback",
-  passportUse.authenticate("google", { session: false }),
+  (req, res, next) => {
+    getPassport().authenticate("google", { session: false })(req, res, next);
+  },
   (req, res) => {
     const { token, user } = req.user;
     res.redirect(

@@ -3,29 +3,63 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import {User} from "../models/userModel.js";
 import { generateToken } from "../utils/generateToken.js";
 
-export const passportUse = passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.example.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/api/auth/google/callback",
-    },
-    async (_, __, profile, done) => {
-      let user = await User.findOne({
-        email: profile.emails[0].value,
-      });
+let isPassportConfigured = false;
 
-      if (!user) {
-        user = await User.create({
-          name: profile.displayName,
-          email: profile.emails[0].value,
-          image: profile.photos[0].value,
-        });
+/**
+ * Configure passport with Google OAuth strategy
+ * This is called lazily to ensure env vars are loaded
+ */
+const configurePassport = () => {
+  if (isPassportConfigured) {
+    return passport;
+  }
+
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    throw new Error('GOOGLE_CLIENT_ID is not defined in environment variables');
+  }
+  if (!process.env.GOOGLE_CLIENT_SECRET) {
+    throw new Error('GOOGLE_CLIENT_SECRET is not defined in environment variables');
+  }
+
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: "/api/auth/google/callback",
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          let user = await User.findOne({
+            email: profile.emails[0].value,
+          });
+
+          if (!user) {
+            user = await User.create({
+              name: profile.displayName,
+              email: profile.emails[0].value,
+              image: profile.photos[0].value,
+            });
+          }
+
+          const token = generateToken(user);
+
+          done(null, { token, user });
+        } catch (error) {
+          done(error, null);
+        }
       }
+    )
+  );
 
-      const token = generateToken(user);
+  isPassportConfigured = true;
+  return passport;
+};
 
-      done(null, { token, user });
-    }
-  )
-);
+/**
+ * Get configured passport instance
+ * @returns {passport} Configured passport instance
+ */
+export const getPassport = () => {
+  return configurePassport();
+};

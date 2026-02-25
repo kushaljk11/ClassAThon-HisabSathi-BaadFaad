@@ -1,10 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
-// Load env vars BEFORE anything that needs them
-dotenv.config();
-
 import connectDB from './config/database.js';
 import mailRoutes from './routes/mail.routes.js';
 import nudgeRoutes from './routes/nudge.route.js';
@@ -13,10 +9,12 @@ import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
+import authRoutes from './routes/authRoute.js';
+
+// Load env vars BEFORE anything that needs them
+dotenv.config();
 
 connectDB();
-
-dotenv.config({ path: '.env.example' }); 
 
 const app = express();
 app.use(cors());
@@ -24,6 +22,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
 // Mount API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/participants', participantRoutes);
 app.use('/api/mail', mailRoutes);
 app.use('/api/nudge', nudgeRoutes);
