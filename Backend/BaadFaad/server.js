@@ -12,7 +12,7 @@ import sessionRoutes from './routes/session.route.js';
 
 connectDB();
 
-dotenv.config(); 
+dotenv.config({ path: '.env.example' }); 
 
 const app = express(); 
 app.use(cors()); 
