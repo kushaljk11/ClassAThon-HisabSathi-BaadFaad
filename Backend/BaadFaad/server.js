@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
 import mailRoutes from './routes/mail.routes.js';
 import nudgeRoutes from './routes/nudge.route.js';
@@ -10,9 +12,15 @@ import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
 import authRoutes from './routes/authRoute.js';
+import billRoutes from './routes/bill.routes.js';
 
-// Load env vars BEFORE anything that needs them
-dotenv.config();
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load env vars from backend folder regardless of process.cwd()
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 connectDB();
 
@@ -30,6 +38,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/splits', splitRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use("/api/session", sessionRoutes);
+app.use('/api/bills', billRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server is running!');
