@@ -26,7 +26,7 @@ export const getParticipantById = async (req, res, next) => {
     const participant = await Participant.findById(req.params.id);
     if (!participant) return res.status(404).json({ message: 'Participant not found' });
     res.json(participant);
-  } catch (err) {
+  } catch (err) { 
     next(err);
   }
 };
