@@ -1,10 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaArrowRight, FaCopy, FaQrcode } from "react-icons/fa";
+import api from "../../config/config";
 
 export default function ReadyToSplit() {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("currentSession");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setSession(parsed);
+      // Poll for participant updates every 3 seconds
+      const interval = setInterval(async () => {
+        try {
+          const res = await api.get(`/sessions/${parsed._id}`);
+          setSession(res.data.session);
+          localStorage.setItem("currentSession", JSON.stringify(res.data.session));
+        } catch (err) {
+          // ignore polling errors
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const participantCount = session?.participants?.length || 0;
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/split/join/${session?._id}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleGoToLobby = () => {
+    navigate("/split/joined");
+  };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
@@ -23,13 +60,13 @@ export default function ReadyToSplit() {
           <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="mb-4 text-center">
               <span className="inline-block rounded-full bg-emerald-100 px-4 py-1 text-xs font-bold tracking-wider text-emerald-600">
-                ACTIVE SESSION
+                {session?.status?.toUpperCase() || 'ACTIVE'} SESSION
               </span>
               <h2 className="mt-3 text-2xl font-bold text-slate-900">
-                Dinner at Trisara
+                {session?.name || 'Loading...'}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Total Amount: <span className="font-bold text-slate-900">Rs. 4,500</span>
+                Session Code: <span className="font-bold text-slate-900">{session?.code || '...'}</span>
               </p>
             </div>
 
@@ -42,7 +79,11 @@ export default function ReadyToSplit() {
               <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50 p-6">
                 <div className="rounded-xl bg-white p-4 shadow-md">
                   <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-lg bg-zinc-100">
-                    <FaQrcode className="text-5xl text-slate-400" />
+                    {session?.qrCode ? (
+                      <img src={session.qrCode} alt="Session QR Code" className="h-full w-full rounded-lg object-contain" />
+                    ) : (
+                      <FaQrcode className="text-5xl text-slate-400" />
+                    )}
                   </div>
                   <p className="mt-3 text-center text-xs text-slate-400">
                     Scan to join this split session
@@ -56,7 +97,7 @@ export default function ReadyToSplit() {
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
                 <span className="font-semibold text-slate-600">Live Update</span>
               </div>
-              <span className="font-bold text-emerald-600">1 Joined</span>
+              <span className="font-bold text-emerald-600">{participantCount} Joined</span>
             </div>
 
             <div className="mt-5 text-center">
@@ -73,6 +114,7 @@ export default function ReadyToSplit() {
           <div className="mt-5 space-y-3">
             <button
               type="button"
+              onClick={handleGoToLobby}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-white shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
             >
               Go to Live Split Room
@@ -81,10 +123,11 @@ export default function ReadyToSplit() {
 
             <button
               type="button"
+              onClick={handleCopyLink}
               className="flex w-full items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-8 py-3 text-sm font-semibold text-slate-600 transition hover:bg-zinc-50"
             >
               <FaCopy className="text-xs" />
-              Copy Session Link
+              {copied ? 'Copied!' : 'Copy Session Link'}
             </button>
           </div>
         </div>

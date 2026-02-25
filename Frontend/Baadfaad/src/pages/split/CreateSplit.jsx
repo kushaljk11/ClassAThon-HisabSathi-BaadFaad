@@ -2,14 +2,70 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import { FaReceipt, FaQrcode } from "react-icons/fa";
+import { FaReceipt, FaQrcode, FaSpinner } from "react-icons/fa";
+import api from "../../config/config";
+import { useAuth } from "../../context/authContext";
 
 export default function CreateSplit() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sessionName, setSessionName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleCreateSession = () => {
-    navigate("/split/scan");
+  const handleCreateSession = async () => {
+    if (!sessionName.trim()) {
+      setError("Please enter a session name");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api.post("/sessions", {
+        name: sessionName.trim(),
+        hostName: user?.name || "Host",
+        hostEmail: user?.email || "",
+      });
+      const session = res.data.session;
+      // Store session in localStorage so other pages can access it
+      localStorage.setItem("currentSession", JSON.stringify(session));
+      navigate("/split/ready");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create session");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!sessionName.trim()) {
+      setError("Please enter a name");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      // Create a group, then a session linked to it
+      const groupRes = await api.post("/groups", {
+        name: sessionName.trim(),
+        createdBy: user?._id || user?.id || "000000000000000000000000",
+      });
+      const group = groupRes.data.group;
+      const sessionRes = await api.post("/sessions", {
+        name: sessionName.trim(),
+        hostName: user?.name || "Host",
+        hostEmail: user?.email || "",
+        groupId: group.id || group._id,
+      });
+      const session = sessionRes.data.session;
+      localStorage.setItem("currentSession", JSON.stringify(session));
+      navigate("/split/ready");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create group & session");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,26 +107,34 @@ export default function CreateSplit() {
                   <input
                     type="text"
                     id="sessionName"
+                    value={sessionName}
+                    onChange={(e) => setSessionName(e.target.value)}
                     placeholder="e.g., Dinner at Thamel"
                     className="w-full rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 pl-11 text-base text-slate-900 placeholder-slate-400 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-red-500 font-medium">{error}</p>
+              )}
+
               <div className="space-y-3">
                 <button
                   type="button"
                   onClick={handleCreateSession}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50"
                 >
-                  <FaQrcode className="text-lg" />
+                  {loading ? <FaSpinner className="animate-spin text-lg" /> : <FaQrcode className="text-lg" />}
                   Create Session & Generate QR
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleCreateSession}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50"
+                  onClick={handleCreateGroup}
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50"
                 >
                   <FaQrcode className="text-lg" />
                   Create Group & Generate QR

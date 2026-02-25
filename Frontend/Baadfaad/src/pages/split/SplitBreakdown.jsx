@@ -1,53 +1,89 @@
-import { useState } from "react";
-import { FaCheckCircle, FaRegPaperPlane, FaWallet } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaCheckCircle, FaRegPaperPlane, FaWallet, FaSpinner } from "react-icons/fa";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
+import api from "../../config/config";
 
-const participants = [
-  {
-    name: "Rahul Sharma",
-    share: "Rs 5,000",
-    paid: "Rs 5000",
-    due: null,
-    status: "Paid",
-    tag: "HIGHEST SHARE",
-    avatar: "RS",
-    avatarBg: "bg-emerald-200",
-  },
-  {
-    name: "Priya Patel",
-    share: "Rs 2,500",
-    paid: "Rs 1500",
-    due: "Rs 1,000",
-    status: null,
-    tag: null,
-    avatar: "PP",
-    avatarBg: "bg-zinc-300",
-  },
-  {
-    name: "Arjun Singh",
-    share: "Rs 2,500",
-    paid: "Rs 0",
-    due: "Rs 2,500",
-    status: null,
-    tag: null,
-    avatar: "AS",
-    avatarBg: "bg-amber-200",
-  },
-  {
-    name: "Sneha Reddy",
-    share: "Rs 2,500",
-    paid: "Rs 2500",
-    due: null,
-    status: "Paid",
-    tag: null,
-    avatar: "SR",
-    avatarBg: "bg-violet-200",
-  },
+const AVATAR_COLORS = [
+  "bg-emerald-200",
+  "bg-zinc-300",
+  "bg-amber-200",
+  "bg-violet-200",
+  "bg-blue-200",
+  "bg-rose-200",
 ];
 
 export default function SplitBreakdown() {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [split, setSplit] = useState(null);
+  const [notifying, setNotifying] = useState(false);
+
+  useEffect(() => {
+    const storedSplit = localStorage.getItem("currentSplit");
+    if (storedSplit) {
+      const parsed = JSON.parse(storedSplit);
+      setSplit(parsed);
+      // Fetch fresh data if we have an ID
+      if (parsed._id) {
+        api.get(`/splits/${parsed._id}`).then((res) => {
+          setSplit(res.data.split);
+        }).catch(() => {});
+      }
+    }
+  }, []);
+
+  const totalAmount = split?.totalAmount || 0;
+  const breakdown = split?.breakdown || [];
+  const participantCount = breakdown.length;
+
+  const participants = breakdown.map((b, i) => {
+    const name = b.user?.name || b.participant?.name || `Participant ${i + 1}`;
+    const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    const paid = 0; // Could track actual payments in future
+    const due = b.amount;
+    return {
+      name,
+      share: `Rs ${b.amount.toLocaleString()}`,
+      paid: `Rs ${paid.toLocaleString()}`,
+      due: due > 0 ? `Rs ${due.toLocaleString()}` : null,
+      status: paid >= b.amount ? "Paid" : null,
+      tag: i === 0 ? "HIGHEST SHARE" : null,
+      avatar: initials,
+      avatarBg: AVATAR_COLORS[i % AVATAR_COLORS.length],
+    };
+  });
+
+  const handleFinishAndNotify = async () => {
+    if (!split?._id) return;
+    setNotifying(true);
+    try {
+      await api.post(`/splits/${split._id}/finalize`);
+      // Send nudge to all pending participants
+      for (const b of breakdown) {
+        const name = b.user?.name || b.participant?.name || "Friend";
+        const email = b.user?.email || b.participant?.email;
+        if (email && b.amount > 0) {
+          await api.post("/nudge/send", {
+            recipientName: name,
+            recipientEmail: email,
+            senderName: "BaadFaad",
+            groupName: split.session?.name || "Split",
+            amount: b.amount,
+          }).catch(() => {}); // don't block on nudge failures
+        }
+      }
+      localStorage.removeItem("currentSplit");
+      localStorage.removeItem("currentSession");
+      localStorage.removeItem("currentReceipt");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Finalize failed:", err);
+    } finally {
+      setNotifying(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-100">
@@ -70,9 +106,9 @@ export default function SplitBreakdown() {
                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">
                   Total Bill Amount
                 </p>
-                <p className="mt-1 text-6xl font-bold text-slate-900">Rs 12,500</p>
+                <p className="mt-1 text-6xl font-bold text-slate-900">Rs {totalAmount.toLocaleString()}</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  Shared among 4 participants
+                  Shared among {participantCount} participants
                 </p>
               </div>
             </div>
@@ -160,8 +196,11 @@ export default function SplitBreakdown() {
 
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-8 py-3 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40"
+                onClick={handleFinishAndNotify}
+                disabled={notifying}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-8 py-3 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 disabled:opacity-50"
               >
+                {notifying ? <FaSpinner className="animate-spin text-xs" /> : null}
                 Finish &amp; Notify All
                 <FaRegPaperPlane className="text-xs" />
               </button>
