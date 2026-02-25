@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    image: {
+        type: String,
+    },
 });
 
 export const User = mongoose.model("User", userSchema);

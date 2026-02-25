@@ -80,30 +80,14 @@ export const getAllSessions = async (_req, res) => {
 
 export const getSessionById = async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id)
-      .populate("participants.user", "name email")
-      .populate("participants.participant", "name email");
+    const session = await Session.findById(req.params.id);
 
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    // Flatten populated user/participant data into each participant entry
-    const sessionObj = session.toObject();
-    sessionObj.participants = sessionObj.participants.map((p) => {
-      const userData = p.user || p.participant;
-      return {
-        ...p,
-        name: p.name || userData?.name || `User`,
-        email: p.email || userData?.email || "",
-        user: typeof p.user === "object" ? p.user?._id : p.user,
-        participant: typeof p.participant === "object" ? p.participant?._id : p.participant,
-      };
-    });
-
-    return res.status(200).json(sessionObj);
+    return res.status(200).json(session);
   } catch (error) {
-    console.error("Failed to fetch session:", error.message);
     return res.status(500).json({ message: "Failed to fetch session", error: error.message });
   }
 };
@@ -118,19 +102,7 @@ export const getSessionBySplitId = async (req, res) => {
       return res.status(404).json({ message: "Session not found for this split" });
     }
 
-    const sessionObj = session.toObject();
-    sessionObj.participants = sessionObj.participants.map((p) => {
-      const userData = p.user || p.participant;
-      return {
-        ...p,
-        name: p.name || userData?.name || `User`,
-        email: p.email || userData?.email || "",
-        user: typeof p.user === "object" ? p.user?._id : p.user,
-        participant: typeof p.participant === "object" ? p.participant?._id : p.participant,
-      };
-    });
-
-    return res.status(200).json(sessionObj);
+    return res.status(200).json(session);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch session", error: error.message });
   }
@@ -160,23 +132,15 @@ export const joinSession = async (req, res) => {
     const dupFilters = [];  // conditions that mean "already joined"
 
     if (userId) {
-      const joiningUser = await User.findById(userId).select("name email");
-      if (!joiningUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
       participantEntry.user = userId;
-      participantEntry.name = joiningUser.name;
-      participantEntry.email = joiningUser.email;
-      dupFilters.push({ "participants.user": userId });
-      if (joiningUser.email) {
-        dupFilters.push({ "participants.email": { $regex: new RegExp(`^${joiningUser.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
-      }
     } else if (participantId) {
+      console.log("Adding participant to session:", participantId);
       participantEntry.participant = participantId;
       dupFilters.push({ "participants.participant": participantId });
     } else if (name) {
       const Participant = (await import("../models/participant.model.js")).default;
       const newParticipant = await Participant.create({ name, email });
+      console.log("Created anonymous participant:", newParticipant._id);
       participantEntry.participant = newParticipant._id;
       participantEntry.name = newParticipant.name;
       participantEntry.email = newParticipant.email;
@@ -185,39 +149,18 @@ export const joinSession = async (req, res) => {
       return res.status(400).json({ message: "userId, participantId, or name is required" });
     }
 
-    // Atomic update: only push if no duplicate exists
-    // Uses findOneAndUpdate so concurrent requests can't both pass the check
-    const updated = await Session.findOneAndUpdate(
-      {
-        _id: sessionId,
-        // Ensure none of the duplicate filters match
-        ...(dupFilters.length > 0 ? { $nor: dupFilters } : {}),
-      },
-      { $push: { participants: participantEntry } },
-      { new: true }
-    );
+    session.participants.push(participantEntry);
+    await session.save();
 
-    if (!updated) {
-      // No update means duplicate was found — return current session
-      const existing = await Session.findById(sessionId);
-      return res.status(200).json({
-        message: "Already joined session",
-        session: existing.toObject(),
-      });
-    }
+    await session.populate([
+      { path: "participants.user", select: "name email" },
+      { path: "participants.participant", select: "name email" },
+    ]);
 
-    // Emit real-time event to everyone in this session room
-    try {
-      getIO().to(sessionId).emit("participant-joined", {
-        sessionId,
-        participant: participantEntry,
-        session: updated.toObject(),
-      });
-    } catch (_) { /* non-critical */ }
-
+    console.log("Participant joined successfully");
     return res.status(200).json({
       message: "Joined session successfully",
-      session: updated.toObject(),
+      session,
     });
   } catch (error) {
     console.error("Failed to join session:", error.message);
