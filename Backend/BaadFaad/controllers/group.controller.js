@@ -234,10 +234,6 @@ export const joinGroup = async (req, res) => {
     const { groupId } = req.params;
     const { userId, name, email } = req.body;
 
-    console.log("=== JOIN GROUP REQUEST ===");
-    console.log("Group ID:", groupId);
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
     if (!isValidObjectId(groupId)) {
       return sendError(res, 400, 'Invalid groupId');
     }
@@ -281,15 +277,12 @@ export const joinGroup = async (req, res) => {
     await group.populate('createdBy', 'fullName email avatarUrl');
     await group.populate('members', 'fullName email avatarUrl');
 
-    console.log("User joined group successfully");
     return res.status(200).json({
       success: true,
       message: 'Joined group successfully',
       data: group.toJSON(),
     });
   } catch (error) {
-    console.error("=== JOIN GROUP ERROR ===");
-    console.error("Error:", error.message);
     const formattedError = formatMongooseError(error);
     return sendError(res, formattedError.statusCode, formattedError.message);
   }

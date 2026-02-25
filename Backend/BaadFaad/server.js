@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
 import connectDB from './config/database.js';
+import { initSocket } from './config/socket.js';
 
 // Load env vars BEFORE anything that needs them
 dotenv.config();
@@ -19,14 +21,13 @@ import sessionRoutes from './routes/session.route.js';
 connectDB();
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO
+initSocket(httpServer);
+
 app.use(cors());
 app.use(express.json());
-
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.error(`[REQUEST] ${req.method} ${req.path}`); // Using console.error for visibility
-  next();
-});
 
 const PORT = process.env.PORT || 5000;
 
@@ -44,4 +45,4 @@ app.get('/', (req, res) => {
   res.send('Server is running!');
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

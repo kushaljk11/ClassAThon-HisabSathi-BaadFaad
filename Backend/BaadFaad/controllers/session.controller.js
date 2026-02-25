@@ -1,5 +1,7 @@
 import QRCode from 'qrcode';
 import Session from "../models/session.model.js";
+import { User } from "../models/userModel.js";
+import { getIO } from "../config/socket.js";
 
 const QR_BASE_URL = process.env.QR_BASE_URL || 'http://localhost:5173';
 
@@ -24,61 +26,45 @@ const generateQRCode = async (data) => {
 
 export const createSession = async (req, res) => {
   try {
-    console.log("=== CREATE SESSION REQUEST ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-    
     const { name, splitId } = req.body;
 
     if (!name || !splitId) {
-      console.log("Missing required fields:", { name, splitId });
       return res.status(400).json({ message: "name and splitId are required" });
     }
 
-    console.log("Checking for existing session with splitId:", splitId);
-    // Check if a session already exists for this splitId
     const existingSession = await Session.findOne({ splitId });
     if (existingSession) {
-      console.log("Found existing session:", existingSession._id);
-      return res.status(200).json({ 
-        message: "Session already exists for this split", 
-        session: existingSession 
+      return res.status(200).json({
+        message: "Session already exists for this split",
+        session: existingSession,
       });
     }
 
-    console.log("Creating new session...");
-    // Create session first to get the ID
     const session = await Session.create({ name, splitId });
-    console.log("Session created with ID:", session._id);
-    
-    // Generate QR code with session join URL
+
     const joinUrl = `${QR_BASE_URL}/split/ready?splitId=${splitId}&sessionId=${session._id}&type=session`;
-    console.log("Generating QR code for URL:", joinUrl);
     const qrCodeBase64 = await generateQRCode(joinUrl);
-    
-    // Update session with QR code
+
     session.qrCode = qrCodeBase64;
-    await session.save();
-    console.log("Session updated with QR code");
-    
-    return res.status(201).json({ message: "Session created with QR code", session });
-  } catch (error) {
-    console.error("=== SESSION CREATION ERROR ===");
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-import Session from "../models/session.model.js";
 
-export const createSession = async (req, res) => {
-  try {
-    const { name, splitId } = req.body;
-
-    if (!name || !splitId) {
-      return res.status(400).json({ message: "name and splitId are required" });
+    // Auto-add the creator as the first participant (host)
+    if (req.body.userId) {
+      const hostUser = await User.findById(req.body.userId).select("name email");
+      if (hostUser) {
+        session.participants.push({
+          user: hostUser._id,
+          name: hostUser.name,
+          email: hostUser.email,
+          joinedAt: new Date(),
+        });
+      }
     }
 
-    const session = await Session.create({ name, splitId });
-    return res.status(201).json({ message: "Session created", session });
+    await session.save();
+
+    return res.status(201).json({ message: "Session created with QR code", session });
   } catch (error) {
+    console.error("Failed to create session:", error.message);
     return res.status(500).json({ message: "Failed to create session", error: error.message });
   }
 };
@@ -94,27 +80,57 @@ export const getAllSessions = async (_req, res) => {
 
 export const getSessionById = async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id);
+    const session = await Session.findById(req.params.id)
+      .populate("participants.user", "name email")
+      .populate("participants.participant", "name email");
 
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    return res.status(200).json(session);
+    // Flatten populated user/participant data into each participant entry
+    const sessionObj = session.toObject();
+    sessionObj.participants = sessionObj.participants.map((p) => {
+      const userData = p.user || p.participant;
+      return {
+        ...p,
+        name: p.name || userData?.name || `User`,
+        email: p.email || userData?.email || "",
+        user: typeof p.user === "object" ? p.user?._id : p.user,
+        participant: typeof p.participant === "object" ? p.participant?._id : p.participant,
+      };
+    });
+
+    return res.status(200).json(sessionObj);
   } catch (error) {
+    console.error("Failed to fetch session:", error.message);
     return res.status(500).json({ message: "Failed to fetch session", error: error.message });
   }
 };
 
 export const getSessionBySplitId = async (req, res) => {
   try {
-    const session = await Session.findOne({ splitId: req.params.splitId });
+    const session = await Session.findOne({ splitId: req.params.splitId })
+      .populate("participants.user", "name email")
+      .populate("participants.participant", "name email");
 
     if (!session) {
       return res.status(404).json({ message: "Session not found for this split" });
     }
 
-    return res.status(200).json(session);
+    const sessionObj = session.toObject();
+    sessionObj.participants = sessionObj.participants.map((p) => {
+      const userData = p.user || p.participant;
+      return {
+        ...p,
+        name: p.name || userData?.name || `User`,
+        email: p.email || userData?.email || "",
+        user: typeof p.user === "object" ? p.user?._id : p.user,
+        participant: typeof p.participant === "object" ? p.participant?._id : p.participant,
+      };
+    });
+
+    return res.status(200).json(sessionObj);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch session", error: error.message });
   }
@@ -130,68 +146,81 @@ export const joinSession = async (req, res) => {
     const { sessionId } = req.params;
     const { userId, participantId, name, email } = req.body;
 
-    console.log("=== JOIN SESSION REQUEST ===");
-    console.log("Session ID:", sessionId);
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
-    const session = await Session.findById(sessionId);
-    if (!session) {
+    // Validate session exists and hasn't expired
+    const sessionCheck = await Session.findById(sessionId);
+    if (!sessionCheck) {
       return res.status(404).json({ message: "Session not found" });
     }
-
-    // Check if session has expired
-    if (session.endDate && new Date() > session.endDate) {
+    if (sessionCheck.endDate && new Date() > sessionCheck.endDate) {
       return res.status(400).json({ message: "Session has expired" });
     }
 
-    // Check if participant already joined
-    const alreadyJoined = session.participants.some(
-      (p) =>
-        (userId && p.user?.toString() === userId) ||
-        (participantId && p.participant?.toString() === participantId)
-    );
-
-    if (alreadyJoined) {
-      return res.status(200).json({
-        message: "Already joined session",
-        session,
-      });
-    }
-
-    // Add participant to session
-    const participantEntry = {
-      joinedAt: new Date(),
-    };
+    // Build the participant entry and a duplicate-match filter
+    const participantEntry = { joinedAt: new Date() };
+    const dupFilters = [];  // conditions that mean "already joined"
 
     if (userId) {
+      const joiningUser = await User.findById(userId).select("name email");
+      if (!joiningUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
       participantEntry.user = userId;
+      participantEntry.name = joiningUser.name;
+      participantEntry.email = joiningUser.email;
+      dupFilters.push({ "participants.user": userId });
+      if (joiningUser.email) {
+        dupFilters.push({ "participants.email": { $regex: new RegExp(`^${joiningUser.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
+      }
     } else if (participantId) {
       participantEntry.participant = participantId;
+      dupFilters.push({ "participants.participant": participantId });
     } else if (name) {
-      // Create anonymous participant
       const Participant = (await import("../models/participant.model.js")).default;
       const newParticipant = await Participant.create({ name, email });
       participantEntry.participant = newParticipant._id;
+      participantEntry.name = newParticipant.name;
+      participantEntry.email = newParticipant.email;
+      // New participant, no duplicate possible
     } else {
       return res.status(400).json({ message: "userId, participantId, or name is required" });
     }
 
-    session.participants.push(participantEntry);
-    await session.save();
+    // Atomic update: only push if no duplicate exists
+    // Uses findOneAndUpdate so concurrent requests can't both pass the check
+    const updated = await Session.findOneAndUpdate(
+      {
+        _id: sessionId,
+        // Ensure none of the duplicate filters match
+        ...(dupFilters.length > 0 ? { $nor: dupFilters } : {}),
+      },
+      { $push: { participants: participantEntry } },
+      { new: true }
+    );
 
-    await session.populate([
-      { path: "participants.user", select: "name email" },
-      { path: "participants.participant", select: "name email" },
-    ]);
+    if (!updated) {
+      // No update means duplicate was found — return current session
+      const existing = await Session.findById(sessionId);
+      return res.status(200).json({
+        message: "Already joined session",
+        session: existing.toObject(),
+      });
+    }
 
-    console.log("Participant joined successfully");
+    // Emit real-time event to everyone in this session room
+    try {
+      getIO().to(sessionId).emit("participant-joined", {
+        sessionId,
+        participant: participantEntry,
+        session: updated.toObject(),
+      });
+    } catch (_) { /* non-critical */ }
+
     return res.status(200).json({
       message: "Joined session successfully",
-      session,
+      session: updated.toObject(),
     });
   } catch (error) {
-    console.error("=== JOIN SESSION ERROR ===");
-    console.error("Error:", error.message);
+    console.error("Failed to join session:", error.message);
     return res.status(500).json({ message: "Failed to join session", error: error.message });
   }
 };
