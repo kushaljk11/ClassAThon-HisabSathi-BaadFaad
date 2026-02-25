@@ -35,6 +35,17 @@ export default function ReadyToSplit() {
     };
 
     fetchSession();
+
+    // Poll for updates every 3 seconds to see new participants
+    const intervalId = setInterval(() => {
+      if (sessionId) {
+        api.get(`/session/${sessionId}`)
+          .then(res => setSession(res.data))
+          .catch(err => console.error("Failed to refresh session:", err));
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, [sessionId]);
 
   const splitName = session?.name || "Split Session";

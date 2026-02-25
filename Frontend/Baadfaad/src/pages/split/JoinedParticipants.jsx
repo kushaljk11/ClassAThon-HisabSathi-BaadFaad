@@ -4,6 +4,7 @@ import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaSpinner } from "react-icons/fa";
 import api from "../../config/config";
+import { useAuth } from "../../context/authContext";
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -21,16 +22,33 @@ export default function SessionLobby() {
   const [session, setSession] = useState(null);
   const [split, setSplit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+
+  const normalizeId = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value._id) return String(value._id);
+      if (value.id) return String(value.id);
+      if (typeof value.toString === "function") return value.toString();
+    }
+    return String(value);
+  };
+
+  const normalizedCurrentUserId = normalizeId(user?._id || user?.id);
+  const normalizedCurrentUserEmail = (user?.email || "").trim().toLowerCase();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (sessionId) {
           const sessionRes = await api.get(`/session/${sessionId}`);
+          console.log("Session data:", sessionRes.data);
+          console.log("Participants:", sessionRes.data.participants);
           setSession(sessionRes.data);
         }
         if (splitId) {
@@ -45,14 +63,56 @@ export default function SessionLobby() {
     };
 
     fetchData();
+
+    // Poll for updates every 3 seconds to see new participants
+    const intervalId = setInterval(() => {
+      if (sessionId) {
+        api.get(`/session/${sessionId}`)
+          .then(res => setSession(res.data))
+          .catch(err => console.error("Failed to refresh session:", err));
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, [sessionId, splitId]);
 
   const splitName = session?.name || "Split Session";
 
-  // Static placeholder participants — will be replaced when sessions are integrated
-  const participants = [
-    { id: 1, name: "You", initial: "Y", isHost: true, ...COLORS[0] },
-  ];
+  // Get participants from session and map them to display format
+  const participants = session?.participants?.map((p, index) => {
+    const participantId = normalizeId(p.user || p.participant || p._id);
+    const participantEmail = (
+      p.email || p.user?.email || p.participant?.email || ""
+    )
+      .trim()
+      .toLowerCase();
+    const participantName =
+      p.name ||
+      p.user?.name ||
+      p.participant?.name ||
+      p.email ||
+      p.user?.email ||
+      p.participant?.email ||
+      `User ${index + 1}`;
+
+    const isCurrentUser =
+      (!!normalizedCurrentUserId && participantId === normalizedCurrentUserId) ||
+      (!!normalizedCurrentUserEmail &&
+        !!participantEmail &&
+        participantEmail === normalizedCurrentUserEmail);
+
+    const displayName = isCurrentUser ? "You" : participantName;
+    
+    const isHost = index === 0; // First participant is the host (creator)
+    
+    return {
+      id: participantId || index,
+      name: displayName,
+      initial: participantName.charAt(0).toUpperCase(),
+      isHost,
+      ...COLORS[index % COLORS.length],
+    };
+  }) || [];
 
   const handleContinueToScan = () => {
     navigate(`/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
