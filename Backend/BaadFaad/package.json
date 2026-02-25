@@ -1,6 +1,7 @@
 {
   "name": "baadfaad",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,7 +18,8 @@
     "express": "^5.2.1",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.1",
-    "nodemailer": "^8.0.1"
+    "nodemailer": "^8.0.1",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

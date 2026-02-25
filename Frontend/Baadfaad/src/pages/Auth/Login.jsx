@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/Logo-01.png';
+import api from '../../config/config';
+import { API_URL, BASE_URL } from '../../config/config';
+import  {AuthContext}  from '../../context/authContext';
 
 const Login = () => {
   const [fullName, setFullName] = useState('');
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
+
 
   const handleGoogleLogin = () => {
-    // Implement Google login logic here
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      return;
+    }
+
+    localStorage.setItem('pendingFullName', trimmedName);
+    const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    const googleAuthUrl = `${backendBaseUrl}/api/auth/google`;
+    window.location.href = googleAuthUrl;
     console.log('Continue with Google clicked');
+  };
+
+  const handleContinue = async () => {
+    try {
+      const response = await api.post('/auth/continue', { fullName });
+      const { token, user } = response.data;
+      login(user, token);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error continuing:', error);
+    }
   };
 
   return (
@@ -54,7 +80,12 @@ const Login = () => {
           {/* Google Login Button */}
           <button
             onClick={handleGoogleLogin}
-            className="w-full bg-emerald-400 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            disabled={!fullName.trim()}
+            className={`w-full text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${
+              fullName.trim()
+                ? 'bg-emerald-400 hover:bg-emerald-500'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
           >
             <span className="w-6 h-6 bg-white rounded flex items-center justify-center">
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -78,6 +109,11 @@ const Login = () => {
             </span>
             Continue with Google
           </button>
+          {!fullName.trim() && (
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Enter your full name to continue with Google.
+            </p>
+          )}
 
           {/* Terms and Privacy */}
           <p className="text-center text-xs text-gray-500 mt-6">
