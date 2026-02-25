@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Login Page
+ * @description Authentication page supporting:
+ *              - Quick login via name (creates or finds user on backend)
+ *              - Google OAuth 2.0 one-click sign-in
+ *              On successful login, stores JWT & user data in localStorage
+ *              via AuthContext and navigates to the dashboard.
+ *
+ * @module pages/auth/Login
+ */
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/Logo-01.png';

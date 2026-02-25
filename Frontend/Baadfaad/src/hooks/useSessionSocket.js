@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Real-Time Session Socket Hook & Helpers
+ * @description Custom React hook and utility functions for managing real-time
+ *              Socket.IO communication within a bill-splitting session.
+ *
+ *              The `useSessionSocket` hook joins a session room on mount and
+ *              subscribes to three event channels:
+ *              - `participant-joined` — a new user entered the session
+ *              - `host-navigate`     — host redirects all participants to a new page
+ *              - `items-update`      — host updated the bill items list
+ *
+ *              Helper functions:
+ *              - `emitHostNavigate(sessionId, path)` — broadcast a page redirect
+ *              - `emitItemsUpdate(sessionId, scannedData, manualItems)` — broadcast item changes
+ *
+ * @module hooks/useSessionSocket
+ */
 import { useEffect } from "react";
 import socket from "../config/socket";
 

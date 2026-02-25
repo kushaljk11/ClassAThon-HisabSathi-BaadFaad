@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Dashboard Top Bar / Header
+ * @description Fixed top navigation bar for the authenticated dashboard.
+ *              Displays the BaadFaad logo, user profile (avatar + name + email),
+ *              a logout button (desktop), and a hamburger/close toggle for the
+ *              mobile sidebar. Uses the `useAuth` hook for user data and logout.
+ *
+ * @param {Object} props
+ * @param {Function} props.onMenuToggle - Callback to toggle the mobile sidebar
+ * @param {boolean}  props.isOpen       - Current sidebar open state (for icon toggle)
+ * @returns {JSX.Element} Fixed header with branding, user info, and menu controls
+ *
+ * @module components/layout/Dashboard/TopBar
+ */
 import { FaBars, FaTimes, FaSignOutAlt } from "react-icons/fa";
 import logo from "../../../assets/Logo-01.png";
 import { useAuth } from "../../../context/authContext";

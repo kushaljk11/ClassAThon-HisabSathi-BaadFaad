@@ -1,12 +1,15 @@
+/**
+ * @fileoverview Nudge (Payment Reminder) Page
+ * @description Manages payment reminder nudges for a specific group.
+ *              Displays a list of all nudges sent within the group, shows
+ *              their delivery status, and allows sending new nudge emails
+ *              to members who haven't paid yet. Includes status indicators
+ *              (sent, acknowledged, pending) with timestamps.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/group/Nudge
+ */
 import { useState, useEffect } from "react";
-import {
-  FaCheckCircle,
-  FaPaperPlane,
-  FaRegClock,
-  FaUserCircle,
-  FaUserSecret,
-  FaSpinner,
-} from "react-icons/fa";
 import { useParams, useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";

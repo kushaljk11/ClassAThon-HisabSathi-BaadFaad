@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Scan Bill Page
+ * @description Host-only page for uploading or capturing a bill image.
+ *              Sends the image to the Gemini AI backend for OCR parsing,
+ *              displays extracted items in an editable table, and allows
+ *              manual item additions. Non-host participants see a read-only
+ *              preview synced in real time via Socket.IO.
+ *              Includes a "Table Timer" that auto-navigates after a timeout.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/ScanBill
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

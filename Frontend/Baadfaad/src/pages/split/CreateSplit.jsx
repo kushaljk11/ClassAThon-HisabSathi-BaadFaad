@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Create Split Page
+ * @description Wizard page for starting a new bill-splitting session.
+ *              The user enters a split title, picks a split method (equal,
+ *              item-based, or custom), then the component:
+ *              1. Creates a split record via the API
+ *              2. Creates a real-time session linked to the split
+ *              3. Joins the session as the first participant (host)
+ *              4. Navigates to the ScanBill or ReadyToSplit page
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/CreateSplit
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

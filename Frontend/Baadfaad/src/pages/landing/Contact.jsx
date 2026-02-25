@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Contact Page
+ * @description Contact form and social links for BaadFaad.
+ *              Features a feedback form with name, email, and message fields,
+ *              a loading spinner on submit, and links to WhatsApp, Instagram,
+ *              and email. Wrapped in the landing Topbar and Footer layout.
+ *
+ * @module pages/landing/Contact
+ */
 import { useState } from "react";
 import {
   FaArrowRight,

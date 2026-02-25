@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Authentication Context & Provider
+ * @description React context that manages global authentication state.
+ *              On mount, rehydrates user/token from localStorage.
+ *              Exposes:
+ *              - `user`            — the current authenticated user object (or null)
+ *              - `isAuthenticated` — boolean shorthand
+ *              - `isLoading`       — true while initial auth check runs
+ *              - `login(user, token)` — persist credentials & update state
+ *              - `logout()`        — clear credentials & redirect to /login
+ *
+ * Usage: wrap the app in <AuthProvider>, then call `useAuth()` in any component.
+ *
+ * @module context/authContext
+ */
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 // Export the context

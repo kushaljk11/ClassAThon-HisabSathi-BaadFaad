@@ -1,3 +1,14 @@
+/**
+ * @fileoverview About Us Page
+ * @description Showcases the BaadFaad team and mission. Displays:
+ *              - Team member cards with initials, names, and roles
+ *              - "Why BaadFaad" bullet points with check-circle icons
+ *              - Clash-A-Thon 2026 context section
+ *              - CTA to start splitting
+ *              Wrapped in the landing Topbar and Footer layout.
+ *
+ * @module pages/landing/AboutUs
+ */
 import { FaArrowRight, FaCheckCircle } from "react-icons/fa";
 import Footer from "../../components/layout/landing/Footer";
 import Topbar from "../../components/layout/landing/Topbar";

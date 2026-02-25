@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Landing Page Top Navigation Bar
+ * @description Floating pill-shaped navigation bar for landing/marketing pages.
+ *              Renders the BaadFaad logo, nav links (Features, How It Works, About,
+ *              Contact) that resolve to hash anchors or page routes depending
+ *              on the current pathname, and a "Start Splitting" CTA button.
+ *              Features and How It Works links use hash-based scroll on the
+ *              homepage and full navigation from other pages.
+ *
+ * @returns {JSX.Element} Responsive header with rounded pill container
+ *
+ * @module components/layout/landing/Topbar
+ */
 import logo from "../../../assets/Logo-01.png";
 import { Link, useLocation } from "react-router-dom";
 

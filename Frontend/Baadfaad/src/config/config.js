@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Axios API Client Configuration
+ * @description Creates and exports a pre-configured Axios instance for all
+ *              backend API calls. Features:
+ *              - Base URL pointing to the Express backend
+ *              - Automatic JWT Bearer token injection from localStorage
+ *              - Response interceptor that clears auth on 401/403 and
+ *                redirects to /login
+ *
+ * @module config/config
+ */
 import axios from "axios";
 export const API_URL = "http://localhost:5000/api";
 export const BASE_URL = "http://localhost:5000";

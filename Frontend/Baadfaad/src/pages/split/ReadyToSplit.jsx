@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Ready To Split / Waiting Room Page
+ * @description Displays the session QR code and share link so participants
+ *              can join. Shows the live participant count via Socket.IO.
+ *              The host can proceed when enough people have joined.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/ReadyToSplit
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

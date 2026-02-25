@@ -1,5 +1,14 @@
+/**
+ * @fileoverview Split Breakdown Page
+ * @description Shows the per-participant cost breakdown after split calculation.
+ *              Displays each participant's share amount, selected items, and
+ *              payment status (paid/pending). The host can mark payments and
+ *              send nudge reminders. Includes round-off display.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/SplitBreakdown
+ */
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   FaCheckCircle,
   FaRegPaperPlane,

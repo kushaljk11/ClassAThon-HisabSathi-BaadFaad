@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Loader Spinner Component
+ * @description A lightweight SVG-based loading spinner.
+ *              Renders a circular animation using two overlapping SVG elements:
+ *              a muted full circle and a highlighted quarter-arc.
+ *              Accepts an optional `className` prop for sizing and color overrides.
+ *
+ * @param {Object} props
+ * @param {string} [props.className] - Additional Tailwind/CSS classes (e.g. "size-10 animate-spin text-emerald-400")
+ * @returns {JSX.Element} Animated SVG spinner
+ *
+ * @module components/common/Loader
+ */
 export default function Loader({ className = "" }) {
   return (
     <svg

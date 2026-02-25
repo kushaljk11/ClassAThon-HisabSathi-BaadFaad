@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Application Root Component
+ * @description Defines the top-level React component tree for BaadFaad.
+ *              Wraps everything in AuthProvider for global auth state,
+ *              sets up React Router with public routes (landing, about, contact, login)
+ *              and protected routes (dashboard, splits, groups, settlements).
+ *              Shows a full-screen loader while auth state is being resolved.
+ *
+ * @module App
+ */
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Landing from './pages/landing/Landing'

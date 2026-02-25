@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Landing Page Footer
+ * @description Site-wide footer displayed on all landing/marketing pages.
+ *              Contains the BaadFaad brand section with tagline, social links,
+ *              navigation links (About, Features, Contact, Privacy),
+ *              community links (Help, Clash-A-Thon, API, Brand Assets),
+ *              and legal boilerplate (Terms, Cookies, Copyright).
+ *
+ * @returns {JSX.Element} Full-width dark footer with three-column grid
+ *
+ * @module components/layout/landing/Footer
+ */
 import logo from '../../../assets/Logo-01.png'
 
 export default function Footer() {

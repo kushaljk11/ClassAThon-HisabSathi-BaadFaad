@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Group Listing Page
+ * @description Displays all expense-sharing groups the user belongs to.
+ *              Shows group cards with member count and creation date.
+ *              Provides a "Create Group" modal/form and navigation to
+ *              individual group settlement and nudge pages.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/group/Group
+ */
 import { useState, useEffect } from "react";
 import { FaPlus, FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";

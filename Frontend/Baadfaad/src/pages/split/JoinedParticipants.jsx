@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Joined Participants / Session Lobby Page
+ * @description Displays all participants who have joined the current session.
+ *              Each participant is shown with a color-coded avatar, name, and
+ *              join status. The host sees a "Calculate Split" button; non-host
+ *              participants wait for the host to navigate. Live updates via
+ *              Socket.IO's `participant-joined` and `host-navigate` events.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/JoinedParticipants
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

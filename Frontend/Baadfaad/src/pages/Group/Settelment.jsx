@@ -1,13 +1,14 @@
+/**
+ * @fileoverview Settlement Page
+ * @description Shows the payment settlement status for a group's splits.
+ *              Displays each member's outstanding balance, payment history,
+ *              and allows the host to mark payments as completed or send
+ *              nudge reminders. Supports exporting settlement summaries.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/group/Settlement
+ */
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import {
-  FaCheckCircle,
-  FaFileExport,
-  FaPaperPlane,
-  FaRegClock,
-  FaSpinner,
-  FaArrowRight,
-} from "react-icons/fa";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import api from "../../config/config";

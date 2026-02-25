@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Dashboard Sidebar Navigation
+ * @description Responsive sidebar component for the authenticated dashboard.
+ *              Features:
+ *              - Nav links (Home, Create Split, Group, About, Contact) with active-state highlighting
+ *              - Mobile: slides in from right with backdrop overlay
+ *              - Desktop: fixed left sidebar always visible
+ *              - Premium upgrade CTA card at the bottom
+ *              Uses react-router-dom NavLink for active route detection.
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen  - Controls mobile sidebar visibility
+ * @param {Function} props.onClose - Callback to close the sidebar (mobile)
+ * @returns {JSX.Element} Sidebar navigation with menu items and premium card
+ *
+ * @module components/layout/Dashboard/SideBar
+ */
 import {
   FaCog,
   FaHistory,

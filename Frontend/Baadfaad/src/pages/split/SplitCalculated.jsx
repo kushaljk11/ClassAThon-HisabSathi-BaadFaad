@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Split Calculated / Item Selection Page
+ * @description Interactive page where each participant selects the items they
+ *              consumed from the bill. Features a "Smart Guilt Calculator" that
+ *              shows a humorous fairness score based on selection honesty.
+ *              The host triggers the final split calculation; non-host users
+ *              wait. Supports real-time sync via Socket.IO.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/split/SplitCalculated
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Join Session Page
+ * @description Allows a user to join an existing bill-splitting session by
+ *              entering or pasting a session ID. Validates the input and
+ *              navigates to the split flow with the session context.
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/Dashboard/JoinSession
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";

@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Dashboard Home Page
+ * @description Main authenticated dashboard showing the user's recent splits.
+ *              Features:
+ *              - Animated hero welcome banner with user's name
+ *              - "New Split" and "Join Session" quick-action buttons
+ *              - Cards for each split displaying title, status, date, and total
+ *              - Settlement and Nudge action buttons per split
+ *              - Empty state prompt when no splits exist
+ *              Uses the Dashboard SideBar + TopBar layout.
+ *
+ * @module pages/Dashboard/Home
+ */
 import { useState, useEffect } from "react";
 import {
   FaBolt,

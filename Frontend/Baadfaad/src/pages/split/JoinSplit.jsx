@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Join Split Page
+ * @description Handles the flow when a user joins an existing session via
+ *              a shared link or QR code. Reads the sessionId from URL params,
+ *              calls the join API with the current user's info, stores session
+ *              data in sessionStorage, and navigates to the appropriate step
+ *              in the split flow.
+ *
+ * @module pages/split/JoinSplit
+ */
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
