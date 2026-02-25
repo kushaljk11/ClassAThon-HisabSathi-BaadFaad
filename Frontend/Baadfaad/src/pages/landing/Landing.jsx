@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import Footer from "../../components/layout/landing/Footer";
 import Topbar from "../../components/layout/landing/Topbar";
 import {
@@ -23,6 +24,8 @@ import esewaLogo from "../../assets/esewa.png";
 import khaltiLogo from "../../assets/khalti.png";
 
 export default function Landing() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-zinc-100">
       <Topbar />
@@ -50,7 +53,8 @@ export default function Landing() {
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <button
                 type="button"
-                className="rounded-full bg-emerald-400 px-8 py-4 text-2xl font-bold text-slate-900 shadow-lg shadow-emerald-300/60 transition hover:bg-emerald-300"
+                onClick={() => navigate('/login')}
+                className="rounded-full bg-emerald-400 px-8 py-4 text-2xl cursor-pointer font-bold text-slate-900 shadow-lg shadow-emerald-300/60 transition hover:bg-emerald-300"
               >
                 <span className="inline-flex items-center gap-2">
                   Start Splitting{" "}

@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect, useContext, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/authContext';
 
@@ -6,8 +6,13 @@ const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple processing
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
     try {
       const token = searchParams.get('token');
       const userJson = searchParams.get('user');
@@ -21,15 +26,15 @@ const AuthCallback = () => {
 
         localStorage.removeItem('pendingFullName');
         login(mergedUser, token);
-        navigate('/dashboard');
+        navigate('/split/create', { replace: true });
       } else {
         localStorage.removeItem('pendingFullName');
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     } catch (error) {
       console.error('Error processing auth callback:', error);
       localStorage.removeItem('pendingFullName');
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   }, [searchParams, navigate, login]);
 

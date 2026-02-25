@@ -4,8 +4,11 @@ import {
   FaThLarge,
   FaUserFriends,
   FaUsers,
+  FaCrown,
+  FaChevronRight,
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../../context/authContext";
 
 const menuItems = [
   { label: "Home", icon: FaThLarge, to: "/dashboard" },
@@ -16,58 +19,84 @@ const menuItems = [
 ];
 
 export default function SideBar({ isOpen, onClose }) {
+  const { user } = useAuth();
+
   return (
     <>
       {/* Backdrop/Overlay (Mobile) */}
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 top-16 z-30 bg-slate-900/50 md:hidden"
+          className="fixed inset-0 top-16 z-30 bg-slate-900/60 backdrop-blur-sm md:hidden"
           aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-16 z-40 flex h-[calc(100vh-4rem)] w-56 flex-col border-zinc-200 bg-white px-4 py-5 shadow-xl transition-transform duration-300 md:left-0 md:border-r md:translate-x-0 ${
+        className={`fixed top-16 z-40 flex h-[calc(100vh-4rem)] w-56 flex-col border-zinc-200 bg-linear-to-b from-white to-zinc-50 shadow-2xl transition-transform duration-300 md:left-0 md:border-r md:translate-x-0 ${
           isOpen ? "right-0 translate-x-0 border-l" : "right-0 translate-x-full md:translate-x-0"
         }`}
       >
-      <nav className="space-y-3">
-        {menuItems.map(({ label, icon: Icon, to }) => (
-          <NavLink
-            key={label}
-            to={to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-base font-medium transition ${
-                isActive
-                ? "bg-emerald-800 text-white"
-                : "text-slate-500 hover:bg-zinc-50 hover:text-slate-700"
-              }`
-            }
-          >
-            <Icon className="text-base" />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
 
-      <div className="mt-auto rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-5">
-        <p className="text-xs font-bold tracking-wide text-slate-500">
-          PREMIUM ACCOUNT
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Upgrade for unlimited split groups.
-        </p>
-        <button
-          type="button"
-          className="mt-4 w-full rounded-full bg-slate-900 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition"
-        >
-          UPGRADE
-        </button>
-      </div>
-    </aside>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          {menuItems.map(({ label, icon: Icon, to }) => (
+            <NavLink
+              key={label}
+              to={to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `group flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm font-semibold transition-all duration-200 ${
+                  isActive
+                    ? "bg-linear-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 scale-[1.02]"
+                    : "text-slate-600 hover:bg-white hover:text-emerald-600 hover:shadow-md hover:scale-[1.01]"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className="flex items-center gap-3">
+                    <Icon className={`text-lg transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} />
+                    <span>{label}</span>
+                  </div>
+                  <FaChevronRight className={`text-xs transition-all duration-200 ${
+                    isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-60 group-hover:translate-x-0'
+                  }`} />
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Premium Upgrade Card */}
+        <div className="px-4 pb-6">
+          <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 via-emerald-600 to-teal-600 p-5 shadow-xl">
+            {/* Decorative Elements */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full -ml-10 -mb-10"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <FaCrown className="text-yellow-300 text-lg" />
+                <p className="text-xs font-bold tracking-wide text-emerald-50">
+                  PREMIUM ACCOUNT
+                </p>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-white/95 font-medium">
+                Upgrade for unlimited split groups and premium features.
+              </p>
+              <button
+                type="button"
+                className="mt-4 w-full rounded-xl bg-white py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+              >
+                UPGRADE NOW
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
     </>
   );
 }

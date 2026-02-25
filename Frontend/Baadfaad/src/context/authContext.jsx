@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 // Export the context
 export const AuthContext = createContext();
@@ -23,18 +23,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = (userdata, token) => {
+  const login = useCallback((userdata, token) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userdata));
     setUser(userdata);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
     window.location.href = "/login";
-  };
+  }, []);
 
   const value = { user, login, logout, isLoading, isAuthenticated: !!user };
 

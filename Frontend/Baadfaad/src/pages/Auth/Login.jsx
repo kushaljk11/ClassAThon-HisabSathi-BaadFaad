@@ -29,7 +29,7 @@ const Login = () => {
       const response = await api.post('/auth/continue', { fullName });
       const { token, user } = response.data;
       login(user, token);
-      navigate('/dashboard');
+      navigate('/split/create');
     } catch (error) {
       console.error('Error continuing:', error);
     }

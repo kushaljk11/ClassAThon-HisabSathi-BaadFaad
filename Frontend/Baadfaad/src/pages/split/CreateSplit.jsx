@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import { FaReceipt, FaQrcode } from "react-icons/fa";
+import { FaReceipt, FaQrcode, FaUserFriends } from "react-icons/fa";
 
 export default function CreateSplit() {
   const navigate = useNavigate();
@@ -10,23 +10,23 @@ export default function CreateSplit() {
   const [splitName, setSplitName] = useState("");
   const [error, setError] = useState("");
 
-  const handleStartSplit = () => {
+  const handleCreateSession = () => {
     if (!splitName.trim()) {
       setError("Please enter a split name");
       return;
     }
-    // Store the split name so later pages can use it
+    // Store the split name for session-based split
     localStorage.setItem("splitName", splitName.trim());
-    navigate("/split/scan");
+    navigate("/split/ready");
   };
 
-  const handleCreateWithQR = () => {
+  const handleCreateGroup = () => {
     if (!splitName.trim()) {
-      setError("Please enter a name");
+      setError("Please enter a group name");
       return;
     }
     localStorage.setItem("splitName", splitName.trim());
-    navigate("/split/ready");
+    navigate("/group");
   };
 
   return (
@@ -83,25 +83,25 @@ export default function CreateSplit() {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={handleStartSplit}
+                  onClick={handleCreateSession}
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-8 py-4 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500"
                 >
-                  <FaReceipt className="text-lg" />
-                  Scan Bill & Split
+                  <FaQrcode className="text-lg" />
+                  Share QR and Scan Bills
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleCreateWithQR}
+                  onClick={handleCreateGroup}
                   className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-emerald-400 bg-white px-8 py-4 text-base font-bold text-emerald-600 transition hover:bg-emerald-50"
                 >
-                  <FaQrcode className="text-lg" />
-                  Share QR & Split with Friends
+                  <FaUserFriends className="text-lg" />
+                  Share QR and Create Group
                 </button>
               </div>
 
               <p className="text-center text-sm text-slate-400">
-                Scan your bill and we&apos;ll calculate the split for you.
+                Create a session for one-time splits or a group for recurring expenses.
               </p>
             </div>
           </div>
