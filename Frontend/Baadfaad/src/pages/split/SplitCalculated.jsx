@@ -13,6 +13,8 @@ import {
   FaCheckCircle,
   FaHourglassHalf,
   FaTimesCircle,
+  FaClock,
+  FaBolt,
 } from "react-icons/fa";
 import esewaLogo from "../../assets/esewa.png";
 import khaltiLogo from "../../assets/khalti.png";
@@ -60,6 +62,10 @@ export default function SplitCalculated() {
   const [split, setSplit] = useState(null);
   const [session, setSession] = useState(null);
   const [isHost, setIsHost] = useState(false);
+
+  // Table Timer state
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
@@ -114,6 +120,35 @@ export default function SplitCalculated() {
     [navigate]
   );
   useSessionSocket(sessionId, null, onHostNavigate, null);
+
+  // ── Table Timer: track elapsed time from lobby start ──
+  useEffect(() => {
+    const startStr = sessionId && localStorage.getItem(`timer_start_${sessionId}`);
+    if (!startStr) return;
+
+    setTimerRunning(true);
+    const startTime = parseInt(startStr, 10);
+
+    const tick = () => setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    tick(); // initial
+    const interval = setInterval(tick, 1000);
+
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  const formatTimer = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  const getTimerMessage = (secs) => {
+    if (secs < 30) return "Lightning fast! Faster than opening a calculator.";
+    if (secs < 60) return "Under a minute! No awkward silence at the table.";
+    if (secs < 120) return "Quick work! Manual math would've taken 5x longer.";
+    if (secs < 300) return "Still faster than arguing over who had what!";
+    return "Worth the wait — no friendships harmed!";
+  };
 
   // Derived from API data
   const totalAmount = split?.totalAmount || 0;
@@ -216,6 +251,34 @@ export default function SplitCalculated() {
               </p>
             </div>
           </div>
+
+          {/* Table Timer Card */}
+          {timerRunning && (
+            <div className="mb-6 rounded-2xl border border-indigo-200 bg-linear-to-r from-indigo-50 to-violet-50 p-4 shadow-sm md:rounded-3xl md:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-200 text-indigo-600">
+                    <FaClock className="text-xl" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">Split Timer</h3>
+                      <FaBolt className="text-amber-500" />
+                    </div>
+                    <p className="text-xs text-slate-600 md:text-sm">
+                      {getTimerMessage(elapsedSeconds)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold tabular-nums text-indigo-600 md:text-4xl">
+                    {formatTimer(elapsedSeconds)}
+                  </p>
+                  <p className="text-xs font-medium text-slate-400">Total time</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Big Spender and Clean Round Mode - Side by Side */}
           <div className="mb-6 grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">

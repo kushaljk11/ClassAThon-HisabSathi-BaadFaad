@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#1e293b"/>
+  <g transform="translate(96,96)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="56" fill="none" stroke="#34d399" stroke-width="6"/>
+    <!-- Inner connected nodes -->
+    <circle cx="0" cy="-36" r="10" fill="#34d399"/>
+    <circle cx="31" cy="18" r="10" fill="#34d399"/>
+    <circle cx="-31" cy="18" r="10" fill="#34d399"/>
+    <!-- Connection lines -->
+    <line x1="0" y1="-36" x2="31" y2="18" stroke="#34d399" stroke-width="3"/>
+    <line x1="31" y1="18" x2="-31" y2="18" stroke="#34d399" stroke-width="3"/>
+    <line x1="-31" y1="18" x2="0" y2="-36" stroke="#34d399" stroke-width="3"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="6" fill="#34d399"/>
+  </g>
+  <text x="96" y="165" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="22" font-weight="bold">BaadFaad</text>
+</svg>

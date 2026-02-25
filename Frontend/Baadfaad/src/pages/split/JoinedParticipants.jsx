@@ -44,6 +44,13 @@ export default function SessionLobby() {
   const normalizedCurrentUserId = normalizeId(user?._id || user?.id);
   const normalizedCurrentUserEmail = (user?.email || "").trim().toLowerCase();
 
+  // Start the Table Timer when entering the lobby
+  useEffect(() => {
+    if (sessionId && !localStorage.getItem(`timer_start_${sessionId}`)) {
+      localStorage.setItem(`timer_start_${sessionId}`, Date.now().toString());
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {

@@ -8,6 +8,7 @@ import {
   FaTimesCircle,
   FaHourglassHalf,
   FaArrowRight,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
@@ -57,6 +58,7 @@ export default function SplitBreakdown() {
   const [session, setSession] = useState(null);
   const [notifying, setNotifying] = useState(false);
   const [updatingIdx, setUpdatingIdx] = useState(null);
+  const [guiltWarning, setGuiltWarning] = useState(null); // { index, name, share, newAmount }
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
@@ -115,9 +117,61 @@ export default function SplitBreakdown() {
   const breakdown = split?.breakdown || [];
   const participantCount = breakdown.length;
 
+  // ── Smart Guilt Calculator helpers ──
+  const checkRepeatPayer = (name) => {
+    try {
+      const history = JSON.parse(localStorage.getItem("payer_history") || "[]");
+      return history.filter((h) => h.name === name && h.status === "paid").length;
+    } catch { return 0; }
+  };
+
+  const recordPayer = (name) => {
+    try {
+      const history = JSON.parse(localStorage.getItem("payer_history") || "[]");
+      history.push({ name, status: "paid", date: new Date().toISOString() });
+      localStorage.setItem("payer_history", JSON.stringify(history));
+    } catch { /* ignore */ }
+  };
+
   // --- Host: update a participant's amountPaid / paymentStatus ---
   const handlePaymentUpdate = async (index, field, value) => {
     if (!splitId) return;
+
+    const participant = breakdown[index];
+    const name = participant?.name || participant?.user?.name || participant?.participant?.name || "Participant";
+    const share = participant?.amount || 0;
+
+    // Smart Guilt Calculator: overpayment detection (>20% above share)
+    if (field === "amountPaid") {
+      const newAmount = Number(value) || 0;
+      if (share > 0 && newAmount > share * 1.2) {
+        setGuiltWarning({ index, name, share, newAmount });
+        return; // Wait for user confirmation
+      }
+    }
+
+    // Smart Guilt Calculator: repeat-payer detection on "paid" status
+    if (field === "paymentStatus" && value === "paid") {
+      const timesAlreadyPaid = checkRepeatPayer(name);
+      if (timesAlreadyPaid >= 1) {
+        const confirmed = window.confirm(
+          `${name} has already paid ${timesAlreadyPaid} time${timesAlreadyPaid > 1 ? "s" : ""} before. Are you sure they should pay again? Maybe someone else should cover this time.`
+        );
+        if (!confirmed) return;
+      }
+      recordPayer(name);
+    }
+
+    await commitPaymentUpdate(index, field, value);
+  };
+
+  const confirmGuiltWarning = async () => {
+    if (!guiltWarning) return;
+    await commitPaymentUpdate(guiltWarning.index, "amountPaid", guiltWarning.newAmount);
+    setGuiltWarning(null);
+  };
+
+  const commitPaymentUpdate = async (index, field, value) => {
     setUpdatingIdx(index);
     try {
       const body = {};
@@ -219,13 +273,53 @@ export default function SplitBreakdown() {
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">
                 Total Bill Amount
               </p>
-              <p className="mt-1 text-4xl font-bold text-slate-900">Rs {totalAmount.toLocaleString()}</p>
+              <p className="mt-1 text-4xl font-bold text-slate-900">Rs {(Math.round(totalAmount / 10) * 10).toLocaleString()}</p>
               <p className="mt-2 text-sm text-slate-500">
                 Split equally among {participantCount} participant{participantCount !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
         </section>
+
+        {/* ── Smart Guilt Calculator Warning Modal ── */}
+        {guiltWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-md rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <FaExclamationTriangle className="text-xl" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Overpayment Detected!</h3>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                <span className="font-bold text-slate-900">{guiltWarning.name}</span>'s share is{" "}
+                <span className="font-bold text-emerald-600">Rs {guiltWarning.share.toLocaleString()}</span>{" "}
+                but they're paying{" "}
+                <span className="font-bold text-red-500">Rs {guiltWarning.newAmount.toLocaleString()}</span>{" "}
+                — that's <span className="font-bold text-amber-600">{Math.round(((guiltWarning.newAmount - guiltWarning.share) / guiltWarning.share) * 100)}% more</span> than their fair share.
+              </p>
+              <p className="mt-3 text-sm text-slate-500 italic">
+                Are you sure? This might cause the "I only had water" resentment.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setGuiltWarning(null)}
+                  className="flex-1 rounded-xl border border-zinc-300 bg-white py-3 text-sm font-bold text-slate-700 transition hover:bg-zinc-50"
+                >
+                  Adjust Amount
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmGuiltWarning}
+                  className="flex-1 rounded-xl bg-amber-400 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-500"
+                >
+                  Yes, They're Okay With It
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Participants ── */}
         <section className="mt-8">

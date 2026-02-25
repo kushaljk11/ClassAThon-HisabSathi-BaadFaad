@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash, FaSpinner } from "react-icons/fa";
+import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash, FaSpinner, FaLock } from "react-icons/fa";
 import api from "../../config/config";
+import { useAuth } from "../../context/authContext";
+import useSessionSocket, { emitItemsUpdate, emitHostNavigate } from "../../hooks/useSessionSocket";
 
 const toBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -15,6 +17,8 @@ const toBase64 = (file) =>
 
 export default function ScanBill() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -25,6 +29,61 @@ export default function ScanBill() {
   const [itemQuantity, setItemQuantity] = useState("1");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [isHost, setIsHost] = useState(false);
+  const [hostLoading, setHostLoading] = useState(true);
+
+  const sessionId = searchParams.get("sessionId");
+  const splitId = searchParams.get("splitId");
+  const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
+
+  // Detect if current user is host (first participant in session)
+  useEffect(() => {
+    const detectHost = async () => {
+      if (!sessionId) {
+        // No session = direct split, user is effectively the host
+        setIsHost(true);
+        setHostLoading(false);
+        return;
+      }
+      try {
+        const sessionRes = await api.get(`/session/${sessionId}`);
+        const normalizeId = (v) => {
+          if (!v) return "";
+          if (typeof v === "string") return v;
+          if (typeof v === "object") return String(v._id || v.id || v);
+          return String(v);
+        };
+        const currentUserId = normalizeId(user?._id || user?.id);
+        const participants = sessionRes.data?.participants || sessionRes.data?.session?.participants || [];
+        const firstP = participants[0];
+        if (firstP && currentUserId) {
+          const hostId = normalizeId(firstP.user || firstP.participant || firstP._id);
+          setIsHost(hostId === currentUserId);
+        }
+      } catch (err) {
+        console.error("Failed to detect host:", err);
+        // Fallback: assume not host if detection fails
+        setIsHost(false);
+      } finally {
+        setHostLoading(false);
+      }
+    };
+    detectHost();
+  }, [sessionId, user]);
+
+  // Socket: participants receive live item updates from host
+  const onItemsUpdate = useCallback((data) => {
+    if (data?.scannedData !== undefined) setScannedData(data.scannedData);
+    if (data?.manualItems !== undefined) setManualItems(data.manualItems);
+  }, []);
+
+  // Socket: listen for host navigation
+  const onHostNavigate = useCallback((data) => {
+    if (data?.path) navigate(data.path);
+  }, [navigate]);
+
+  useSessionSocket(sessionId, null, onHostNavigate, onItemsUpdate);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -76,13 +135,19 @@ export default function ScanBill() {
         Number(parsed.grand_total) ||
         parsedItems.reduce((sum, item) => sum + item.price, 0);
 
-      setScannedData({
+      const newScannedData = {
         restaurant: "Parsed Receipt",
         address: "",
         items: parsedItems,
         total: parsedTotal,
-      });
+      };
+      setScannedData(newScannedData);
       setProgress(100);
+
+      // Broadcast to participants via socket
+      if (sessionId) {
+        emitItemsUpdate(sessionId, newScannedData, manualItems);
+      }
     } catch (err) {
       setScannedData(null);
 
@@ -117,15 +182,27 @@ export default function ScanBill() {
         quantity: parseInt(itemQuantity),
         unitPrice: parseFloat(itemPrice),
       };
-      setManualItems([...manualItems, newItem]);
+      const updatedItems = [...manualItems, newItem];
+      setManualItems(updatedItems);
       setItemName("");
       setItemPrice("");
       setItemQuantity("1");
+
+      // Broadcast to participants via socket
+      if (sessionId) {
+        emitItemsUpdate(sessionId, scannedData, updatedItems);
+      }
     }
   };
 
   const handleRemoveManualItem = (index) => {
-    setManualItems(manualItems.filter((_, i) => i !== index));
+    const updatedItems = manualItems.filter((_, i) => i !== index);
+    setManualItems(updatedItems);
+
+    // Broadcast to participants via socket
+    if (sessionId) {
+      emitItemsUpdate(sessionId, scannedData, updatedItems);
+    }
   };
 
   const calculateTotal = () => {
@@ -167,17 +244,40 @@ export default function ScanBill() {
       // Store receipt for next pages
       localStorage.setItem("currentReceipt", JSON.stringify(receiptRes.data.receipt));
 
-      // Create a split (equal by default)
-      const splitRes = await api.post("/splits", {
-        receiptId: receiptRes.data.receipt._id,
-        splitType: "equal",
-        totalAmount,
-        breakdown: [],
-      });
+      const receiptId = receiptRes.data.receipt._id;
 
-      localStorage.setItem("currentSplit", JSON.stringify(splitRes.data.split));
+      if (splitId) {
+        // Update existing split with receipt + session so backend auto-calculates breakdown
+        const updateRes = await api.put(`/splits/${splitId}`, {
+          receiptId,
+          totalAmount,
+          splitType: "equal",
+          ...(sessionId ? { sessionId } : {}),
+        });
 
-      navigate("/split/calculated");
+        localStorage.setItem("currentSplit", JSON.stringify(updateRes.data.split));
+
+        // Navigate to breakdown page with all query params
+        const targetPath = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ""}`;
+
+        // Emit socket event so participants are redirected too
+        if (sessionId) {
+          emitHostNavigate(sessionId, targetPath);
+        }
+
+        navigate(targetPath);
+      } else {
+        // No existing split — create a new one (direct split without session)
+        const splitRes = await api.post("/splits", {
+          receiptId,
+          splitType: "equal",
+          totalAmount,
+          breakdown: [],
+        });
+
+        localStorage.setItem("currentSplit", JSON.stringify(splitRes.data.split));
+        navigate(`/split/breakdown?splitId=${splitRes.data.split._id}${sessionId ? `&sessionId=${sessionId}` : ""}&type=${type || "direct"}${groupId ? `&groupId=${groupId}` : ""}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save receipt and calculate split");
     } finally {
@@ -195,12 +295,23 @@ export default function ScanBill() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Scan Your Bill</h1>
             <p className="mt-2 text-base text-slate-500">
-              Upload a photo of your receipt to auto-fill items and prices.
+              {isHost
+                ? "Upload a photo of your receipt to auto-fill items and prices."
+                : "The host is adding items. You can watch the bill update in real-time."}
             </p>
+            {!isHost && !hostLoading && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                <FaLock className="text-amber-500" />
+                <span className="text-sm font-medium text-amber-700">
+                  Only the host can add or scan items. You're viewing as a participant.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Upload Section */}
+            {/* Upload Section - Host Only */}
+            {isHost ? (
             <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
               <label
                 htmlFor="fileUpload"
@@ -268,18 +379,72 @@ export default function ScanBill() {
                 <p className="mt-4 text-sm font-medium text-red-500 text-center">{error}</p>
               )}
             </div>
+            ) : (
+            /* Participant: Waiting view instead of upload */
+            <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm flex flex-col items-center justify-center min-h-75">
+              {hostLoading ? (
+                <FaSpinner className="animate-spin text-3xl text-emerald-400 mb-4" />
+              ) : (
+                <>
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-500">
+                    <FaLock className="text-2xl" />
+                  </div>
+                  <p className="text-lg font-bold text-slate-900 text-center">Host is Managing the Bill</p>
+                  <p className="mt-2 text-sm text-slate-500 text-center">
+                    Items will appear here in real-time as the host adds them.
+                  </p>
+                  <div className="mt-6 flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+                    </span>
+                    <span className="text-sm font-medium text-emerald-600">Watching live...</span>
+                  </div>
+                </>
+              )}
+            </div>
+            )}
 
-            {/* Preview Section */}
+            {/* Preview Section — visible to both host and participants */}
             <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
               {!scannedData && manualItems.length === 0 ? (
                 <div className="flex h-full min-h-100 flex-col items-center justify-center text-center">
-                  <div className="mb-4 h-20 w-20 rounded-full bg-zinc-100"></div>
-                  <p className="text-sm font-semibold text-slate-400">
-                    Receipt preview will appear here
-                  </p>
+                  {!isHost && !hostLoading ? (
+                    <>
+                      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50">
+                        <FaSpinner className="animate-spin text-2xl text-emerald-400" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-500">
+                        Waiting for host to scan or add items...
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs text-emerald-600">Live preview</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 h-20 w-20 rounded-full bg-zinc-100"></div>
+                      <p className="text-sm font-semibold text-slate-400">
+                        Receipt preview will appear here
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div>
+                  {!isHost && (
+                    <div className="mb-4 flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Live from host</span>
+                    </div>
+                  )}
                   {scannedData && (
                     <>
                       <div className="mb-6 border-b border-zinc-200 pb-4 text-center">
@@ -345,7 +510,8 @@ export default function ScanBill() {
             </div>
           </div>
 
-          {/* Manual Entry Section */}
+          {/* Manual Entry Section - Host Only */}
+          {isHost ? (
           <div className="mt-6 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Add Items Manually</h2>
@@ -441,22 +607,55 @@ export default function ScanBill() {
               </div>
             )}
           </div>
+          ) : (
+          /* Participant: Read-only list of manual items */
+          manualItems.length > 0 && (
+            <div className="mt-6 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900">Manual Items</h2>
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-500">
+                  ADDED BY HOST
+                </span>
+              </div>
+              <div className="space-y-2">
+                {manualItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3"
+                  >
+                    <span className="text-sm font-medium text-slate-900">{item.name}</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      ${item.price.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+          )}
 
-          {/* Continue Button */}
+          {/* Continue Button - Host only can calculate; participants see waiting state */}
           {hasItems && (
             <div className="mt-6">
               {error && (
                 <p className="mb-3 text-sm text-red-500 font-medium text-center">{error}</p>
               )}
-              <button
-                type="button"
-                onClick={handleContinue}
-                disabled={saving}
-                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving ? <FaSpinner className="animate-spin" /> : null}
-                Calculate Split
-              </button>
+              {isHost ? (
+                <button
+                  type="button"
+                  onClick={handleContinue}
+                  disabled={saving}
+                  className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {saving ? <FaSpinner className="animate-spin" /> : null}
+                  Calculate Split
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 rounded-full bg-zinc-100 px-8 py-4 text-lg font-semibold text-slate-500">
+                  <FaSpinner className="animate-spin" />
+                  Waiting for host to calculate split...
+                </div>
+              )}
             </div>
           )}
         </div>
