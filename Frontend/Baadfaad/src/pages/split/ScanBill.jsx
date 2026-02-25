@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaCloudUploadAlt, FaCamera, FaCheckCircle, FaPlusCircle, FaTrash, FaSpinner } from "react-icons/fa";
 import api from "../../config/config";
+import { useAuth } from "../../context/authContext";
+import useSessionSocket, { emitHostNavigate, emitItemsUpdate } from "../../hooks/useSessionSocket";
 
 export default function ScanBill() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -18,10 +21,55 @@ export default function ScanBill() {
   const [itemQuantity, setItemQuantity] = useState("1");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [session, setSession] = useState(null);
+  const [isHost, setIsHost] = useState(false);
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+
+  const normalizeId = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value._id) return String(value._id);
+      if (value.id) return String(value.id);
+      if (typeof value.toString === "function") return value.toString();
+    }
+    return String(value);
+  };
+
+  // Fetch session to determine host
+  useEffect(() => {
+    if (!sessionId) return;
+    api.get(`/session/${sessionId}`).then((res) => {
+      setSession(res.data);
+      const currentUserId = normalizeId(user?._id || user?.id);
+      const currentEmail = (user?.email || "").trim().toLowerCase();
+      const firstP = res.data?.participants?.[0];
+      if (firstP) {
+        const hostId = normalizeId(firstP.user || firstP.participant || firstP._id);
+        const hostEmail = (firstP.email || "").trim().toLowerCase();
+        setIsHost(
+          (!!currentUserId && hostId === currentUserId) ||
+          (!!currentEmail && !!hostEmail && hostEmail === currentEmail)
+        );
+      }
+    }).catch(() => {});
+  }, [sessionId, user]);
+
+  // Socket: listen for host-navigate (participants follow host)
+  const handleHostNavigate = useCallback((data) => {
+    if (data.path) navigate(data.path);
+  }, [navigate]);
+
+  // Socket: listen for live item updates from host
+  const handleItemsUpdate = useCallback((data) => {
+    if (data.scannedData !== undefined) setScannedData(data.scannedData);
+    if (data.manualItems !== undefined) setManualItems(data.manualItems);
+  }, []);
+
+  useSessionSocket(sessionId, null, handleHostNavigate, handleItemsUpdate);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -39,7 +87,7 @@ export default function ScanBill() {
         if (prev >= 100) {
           clearInterval(interval);
           setIsProcessing(false);
-          setScannedData({
+          const data = {
             restaurant: "GUSTO ITALIANO",
             address: "125 Pasta Lane, Roma NY",
             items: [
@@ -48,7 +96,9 @@ export default function ScanBill() {
               { name: "3x Peroni Draft", price: 21.0 },
             ],
             total: 63.5,
-          });
+          };
+          setScannedData(data);
+          if (sessionId) emitItemsUpdate(sessionId, data, manualItems);
           return 100;
         }
         return prev + 5;
@@ -69,15 +119,19 @@ export default function ScanBill() {
         quantity: parseInt(itemQuantity),
         unitPrice: parseFloat(itemPrice),
       };
-      setManualItems([...manualItems, newItem]);
+      const updated = [...manualItems, newItem];
+      setManualItems(updated);
       setItemName("");
       setItemPrice("");
       setItemQuantity("1");
+      if (sessionId) emitItemsUpdate(sessionId, scannedData, updated);
     }
   };
 
   const handleRemoveManualItem = (index) => {
-    setManualItems(manualItems.filter((_, i) => i !== index));
+    const updated = manualItems.filter((_, i) => i !== index);
+    setManualItems(updated);
+    if (sessionId) emitItemsUpdate(sessionId, scannedData, updated);
   };
 
   const calculateTotal = () => {
@@ -85,8 +139,6 @@ export default function ScanBill() {
     const manualTotal = manualItems.reduce((sum, item) => sum + item.price, 0);
     return scannedTotal + manualTotal;
   };
-
-  const hasItems = scannedData || manualItems.length > 0;
 
   const handleContinue = async () => {
     if (!splitId) {
@@ -121,15 +173,18 @@ export default function ScanBill() {
         totalAmount,
       });
 
-      // Update the existing split in database with receipt and totalAmount
+      // Update the existing split with receipt, totalAmount + sessionId for participant breakdown
       await api.put(`/splits/${splitId}`, {
         receiptId: receiptRes.data.receipt._id,
         totalAmount,
         splitType: "equal",
+        sessionId,
       });
 
       // Navigate with IDs - data is in database
-      navigate(`/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
+      const path = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}`;
+      if (sessionId) emitHostNavigate(sessionId, path);
+      navigate(path);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save receipt and calculate split");
     } finally {
@@ -137,6 +192,96 @@ export default function ScanBill() {
     }
   };
 
+  // ─── Shared bill preview component ───
+  const BillPreview = () => (
+    <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
+      {!scannedData && manualItems.length === 0 ? (
+        <div className="flex h-full min-h-60 flex-col items-center justify-center text-center">
+          <div className="mb-4 h-20 w-20 rounded-full bg-zinc-100"></div>
+          <p className="text-sm font-semibold text-slate-400">
+            {isHost ? "Receipt preview will appear here" : "Waiting for host to add items..."}
+          </p>
+        </div>
+      ) : (
+        <div>
+          {scannedData && (
+            <>
+              <div className="mb-6 border-b border-zinc-200 pb-4 text-center">
+                <h3 className="text-lg font-bold text-slate-900">{scannedData.restaurant}</h3>
+                <p className="text-xs text-slate-500">{scannedData.address}</p>
+              </div>
+              <div className="space-y-3">
+                {scannedData.items.map((item, index) => (
+                  <div key={index} className="flex items-start justify-between text-sm">
+                    <span className="text-slate-700">{item.name}</span>
+                    <span className="font-semibold text-slate-900">${item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {manualItems.length > 0 && (
+            <>
+              {scannedData && (
+                <div className="my-4 border-t border-zinc-200 pt-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Manual Items</p>
+                </div>
+              )}
+              {!scannedData && (
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Items</p>
+              )}
+              <div className="space-y-3">
+                {manualItems.map((item, index) => (
+                  <div key={index} className="flex items-start justify-between text-sm">
+                    <span className="text-slate-700">{item.name}</span>
+                    <span className="font-semibold text-slate-900">${item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="mt-6 border-t border-emerald-200 bg-emerald-50 px-4 py-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold text-slate-900">TOTAL</span>
+              <span className="text-lg font-bold text-slate-900">${calculateTotal().toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ─── Participant (non-host) view ───
+  if (!isHost) {
+    return (
+      <div className="flex min-h-screen bg-zinc-50">
+        <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+
+        <main className="ml-0 flex-1 px-8 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
+          <div className="mx-auto max-w-xl">
+            <div className="mb-6 text-center">
+              <h1 className="text-3xl font-bold text-slate-900">Bill in Progress</h1>
+              <p className="mt-2 text-base text-slate-500">
+                The host is adding items to the bill. You'll see them appear here in real time.
+              </p>
+            </div>
+
+            <BillPreview />
+
+            <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-4 text-sm font-semibold text-slate-500">
+              <FaSpinner className="animate-spin" />
+              Waiting for host to calculate the split...
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ─── Host view (full edit controls) ───
   return (
     <div className="flex min-h-screen bg-zinc-50">
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
@@ -147,7 +292,7 @@ export default function ScanBill() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">Scan Your Bill</h1>
             <p className="mt-2 text-base text-slate-500">
-              Upload a photo of your receipt to auto-fill items and prices.
+              Upload a photo of your receipt or add items manually.
             </p>
           </div>
 
@@ -161,12 +306,8 @@ export default function ScanBill() {
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500">
                   <FaCloudUploadAlt className="text-3xl" />
                 </div>
-                <p className="text-lg font-bold text-slate-900">
-                  Upload or Drag & Drop
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  Supports JPG, PNG and PDF receipts
-                </p>
+                <p className="text-lg font-bold text-slate-900">Upload or Drag & Drop</p>
+                <p className="mt-2 text-sm text-slate-500">Supports JPG, PNG and PDF receipts</p>
                 <input
                   id="fileUpload"
                   type="file"
@@ -178,9 +319,7 @@ export default function ScanBill() {
 
               <div className="mt-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-zinc-200"></div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  or
-                </span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">or</span>
                 <div className="h-px flex-1 bg-zinc-200"></div>
               </div>
 
@@ -193,19 +332,14 @@ export default function ScanBill() {
                 Camera Capture
               </button>
 
-              {/* Processing Indicator */}
               {isProcessing && (
                 <div className="mt-8">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <FaCheckCircle className="animate-pulse text-emerald-500" />
-                      <span className="font-semibold text-slate-700">
-                        Processing Receipt...
-                      </span>
+                      <span className="font-semibold text-slate-700">Processing Receipt...</span>
                     </div>
-                    <span className="font-bold text-emerald-600">
-                      {progress}% Complete
-                    </span>
+                    <span className="font-bold text-emerald-600">{progress}% Complete</span>
                   </div>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-200">
                     <div
@@ -218,95 +352,19 @@ export default function ScanBill() {
             </div>
 
             {/* Preview Section */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
-              {!scannedData && manualItems.length === 0 ? (
-                <div className="flex h-full min-h-100 flex-col items-center justify-center text-center">
-                  <div className="mb-4 h-20 w-20 rounded-full bg-zinc-100"></div>
-                  <p className="text-sm font-semibold text-slate-400">
-                    Receipt preview will appear here
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  {scannedData && (
-                    <>
-                      <div className="mb-6 border-b border-zinc-200 pb-4 text-center">
-                        <h3 className="text-lg font-bold text-slate-900">
-                          {scannedData.restaurant}
-                        </h3>
-                        <p className="text-xs text-slate-500">{scannedData.address}</p>
-                      </div>
-
-                      <div className="space-y-3">
-                        {scannedData.items.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start justify-between text-sm"
-                          >
-                            <span className="text-slate-700">{item.name}</span>
-                            <span className="font-semibold text-slate-900">
-                              ${item.price.toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {manualItems.length > 0 && (
-                    <>
-                      {scannedData && (
-                        <div className="my-4 border-t border-zinc-200 pt-4">
-                          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-                            Manual Items
-                          </p>
-                        </div>
-                      )}
-                      <div className="space-y-3">
-                        {manualItems.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start justify-between text-sm"
-                          >
-                            <span className="text-slate-700">{item.name}</span>
-                            <span className="font-semibold text-slate-900">
-                              ${item.price.toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  <div className="mt-6 border-t border-emerald-200 bg-emerald-50 px-4 py-3 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-base font-bold text-slate-900">
-                        TOTAL
-                      </span>
-                      <span className="text-lg font-bold text-slate-900">
-                        ${calculateTotal().toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <BillPreview />
           </div>
 
           {/* Manual Entry Section */}
           <div className="mt-6 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Add Items Manually</h2>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-600">
-                OPTIONAL
-              </span>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-600">OPTIONAL</span>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
               <div className="md:col-span-5">
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Item Name
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Item Name</label>
                 <input
                   type="text"
                   value={itemName}
@@ -317,9 +375,7 @@ export default function ScanBill() {
               </div>
 
               <div className="md:col-span-3">
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Quantity
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Quantity</label>
                 <input
                   type="number"
                   value={itemQuantity}
@@ -331,9 +387,7 @@ export default function ScanBill() {
               </div>
 
               <div className="md:col-span-3">
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Price ($)
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Price ($)</label>
                 <input
                   type="number"
                   value={itemPrice}
@@ -368,13 +422,11 @@ export default function ScanBill() {
                     <div className="flex-1">
                       <span className="text-sm font-medium text-slate-900">{item.name}</span>
                       <span className="ml-2 text-xs text-slate-500">
-                        (${item.unitPrice.toFixed(2)} each)
+                        (${item.unitPrice?.toFixed(2) || "0.00"} each)
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-slate-900">
-                        ${item.price.toFixed(2)}
-                      </span>
+                      <span className="text-sm font-bold text-slate-900">${item.price.toFixed(2)}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveManualItem(index)}
@@ -391,22 +443,23 @@ export default function ScanBill() {
           </div>
 
           {/* Continue Button */}
-          {hasItems && (
-            <div className="mt-6">
-              {error && (
-                <p className="mb-3 text-sm text-red-500 font-medium text-center">{error}</p>
-              )}
-              <button
-                type="button"
-                onClick={handleContinue}
-                disabled={saving}
-                className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving ? <FaSpinner className="animate-spin" /> : null}
-                Calculate Split
-              </button>
-            </div>
-          )}
+          <div className="mt-6">
+            {error && (
+              <p className="mb-3 text-sm text-red-500 font-medium text-center">{error}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={saving || (!scannedData && manualItems.length === 0)}
+              className="w-full rounded-full bg-emerald-400 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? <FaSpinner className="animate-spin" /> : null}
+              Calculate Split
+            </button>
+            {!scannedData && manualItems.length === 0 && (
+              <p className="mt-2 text-center text-sm text-slate-400">Add at least one item to continue</p>
+            )}
+          </div>
         </div>
       </main>
     </div>

@@ -14,7 +14,8 @@ export default function Group() {
     const fetchGroups = async () => {
       try {
         const res = await api.get("/groups");
-        setGroups(res.data.groups || res.data || []);
+        const payload = res.data;
+        setGroups(Array.isArray(payload) ? payload : payload.data || payload.groups || []);
       } catch (err) {
         console.error("Failed to fetch groups:", err);
       } finally {

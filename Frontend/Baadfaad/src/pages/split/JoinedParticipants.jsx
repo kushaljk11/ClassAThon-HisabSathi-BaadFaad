@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 import { FaSpinner } from "react-icons/fa";
 import api from "../../config/config";
 import { useAuth } from "../../context/authContext";
+import useSessionSocket, { emitHostNavigate } from "../../hooks/useSessionSocket";
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -47,8 +48,6 @@ export default function SessionLobby() {
       try {
         if (sessionId) {
           const sessionRes = await api.get(`/session/${sessionId}`);
-          console.log("Session data:", sessionRes.data);
-          console.log("Participants:", sessionRes.data.participants);
           setSession(sessionRes.data);
         }
         if (splitId) {
@@ -63,18 +62,21 @@ export default function SessionLobby() {
     };
 
     fetchData();
-
-    // Poll for updates every 3 seconds to see new participants
-    const intervalId = setInterval(() => {
-      if (sessionId) {
-        api.get(`/session/${sessionId}`)
-          .then(res => setSession(res.data))
-          .catch(err => console.error("Failed to refresh session:", err));
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
   }, [sessionId, splitId]);
+
+  const handleParticipantJoined = useCallback((data) => {
+    if (data.session) {
+      setSession(data.session);
+    }
+  }, []);
+
+  const handleHostNavigate = useCallback((data) => {
+    if (data.path) {
+      navigate(data.path);
+    }
+  }, [navigate]);
+
+  useSessionSocket(sessionId, handleParticipantJoined, handleHostNavigate);
 
   const splitName = session?.name || "Split Session";
 
@@ -114,8 +116,12 @@ export default function SessionLobby() {
     };
   }) || [];
 
+  const isCurrentUserHost = participants.length > 0 && participants[0]?.name === "You";
+
   const handleContinueToScan = () => {
-    navigate(`/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
+    const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}`;
+    emitHostNavigate(sessionId, path);
+    navigate(path);
   };
 
   const handleLeave = () => {
@@ -208,9 +214,16 @@ export default function SessionLobby() {
             </div>
 
             <div className="mt-8 space-y-3">
-              <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                Continue to Scan Bill
-              </button>
+              {isCurrentUserHost ? (
+                <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                  Continue to Scan Bill
+                </button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-3 text-sm font-semibold text-slate-500">
+                  <FaSpinner className="animate-spin" />
+                  Waiting for host to continue...
+                </div>
+              )}
               <button onClick={handleLeave} className="w-full rounded-xl bg-red-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
                 Leave
               </button>
