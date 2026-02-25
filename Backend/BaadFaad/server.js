@@ -8,6 +8,7 @@ import groupRoutes from './routes/group.routes.js';
 
 // routes
 import participantRoutes from './routes/participant.routes.js';
+import sessionRoutes from './routes/session.route.js';
 
 connectDB();
 
@@ -23,6 +24,7 @@ app.use('/api/participants', participantRoutes);
 app.use("/api/mail", mailRoutes);
 app.use("/api/nudge", nudgeRoutes);
 app.use('/api/groups', groupRoutes);
+app.use("/api/session", sessionRoutes);
 
 app.get('/', (req, res) => { 
 res.send('Server is running!'); 
