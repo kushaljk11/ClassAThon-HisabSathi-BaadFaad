@@ -1,8 +1,32 @@
+import { useState, useEffect } from "react";
 import { FaPlus, FaArrowRight } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import TopBar from "../../components/layout/Dashboard/TopBar";
 import SideBar from "../../components/layout/Dashboard/SideBar";
+import api from "../../config/config";
 
 export default function Group() {
+  const navigate = useNavigate();
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await api.get("/groups");
+        setGroups(res.data.groups || res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch groups:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGroups();
+  }, []);
+
+  const handleCalculateSplit = () => {
+    navigate("/split/create");
+  };
   return (
     <div className="min-h-screen bg-zinc-100">
       <TopBar />
@@ -23,58 +47,36 @@ export default function Group() {
 
         {/* Cards */}
         <section className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Card */}
-          {[
-            {
-              title: "Margherita Pizza",
-              sub: "Italian Classic",
-              price: "$18.00",
-              img: "https://images.unsplash.com/photo-1604382355076-af4b0eb60143",
-              shared: "4 shared",
-            },
-            {
-              title: "Craft Beer",
-              sub: "Local IPA",
-              price: "$8.50",
-              img: "https://images.unsplash.com/photo-1608270586620-248524c67de9",
-              shared: "1 shared",
-            },
-            {
-              title: "Truffle Fries",
-              sub: "Parmesan & Parsley",
-              price: "$12.00",
-              img: "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a",
-              shared: "3 shared",
-            },
-          ].map((item) => (
-            <article key={item.title}>
-              <div className="relative rounded-[1.8rem] bg-white p-4 shadow-sm">
-                <span className="absolute right-6 top-6 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow">
-                  {item.price}
-                </span>
-
-                <img
-                  src={item.img}
-                  alt={item.title}
-                  className="h-48 w-full rounded-xl object-cover"
-                />
-              </div>
-
-              <h3 className="mt-4 text-lg font-bold text-slate-900">
-                {item.title}
-              </h3>
-              <p className="text-sm text-slate-500">{item.sub}</p>
-
-              <p className="mt-3 text-xs text-slate-400">{item.shared}</p>
-            </article>
-          ))}
+          {loading ? (
+            <p className="text-slate-500">Loading groups...</p>
+          ) : groups.length === 0 ? (
+            <p className="text-slate-500">No groups yet. Create one to get started!</p>
+          ) : (
+            groups.map((group) => (
+              <article key={group.id || group._id}>
+                <div className="relative rounded-[1.8rem] bg-white p-4 shadow-sm">
+                  <span className="absolute right-6 top-6 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow">
+                    {group.defaultCurrency || "NPR"}
+                  </span>
+                  <div className="flex h-48 w-full items-center justify-center rounded-xl bg-emerald-50 text-4xl text-emerald-400">
+                    {group.name?.[0]?.toUpperCase() || "G"}
+                  </div>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-slate-900">{group.name}</h3>
+                <p className="text-sm text-slate-500">{group.description || "No description"}</p>
+                <p className="mt-3 text-xs text-slate-400">{group.members?.length || 0} members</p>
+              </article>
+            ))
+          )}
 
           {/* Add Item Card */}
-          <article className="flex flex-col items-center justify-center rounded-[1.8rem] border-2 border-dashed border-zinc-300 p-6 text-center text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition">
+          <article className="flex flex-col items-center justify-center rounded-[1.8rem] border-2 border-dashed border-zinc-300 p-6 text-center text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition cursor-pointer"
+            onClick={() => {/* Could open a create group modal */}}
+          >
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-lg">
               <FaPlus />
             </div>
-            <p className="mt-3 text-sm font-semibold">Add New Item</p>
+            <p className="mt-3 text-sm font-semibold">Create New Group</p>
           </article>
         </section>
 
@@ -97,7 +99,7 @@ export default function Group() {
               </div>
             </div>
 
-            <button className="flex items-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-sm font-bold text-slate-900 hover:bg-emerald-300 transition">
+            <button onClick={handleCalculateSplit} className="flex items-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-sm font-bold text-slate-900 hover:bg-emerald-300 transition">
               Calculate Split
               <FaArrowRight className="text-xs" />
             </button>
