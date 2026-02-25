@@ -29,6 +29,7 @@ export default function CreateSplit() {
       const splitRes = await api.post("/splits", {
         splitType: "equal",
         totalAmount: 0,
+        name: splitName.trim(),
       });
       
       const split = splitRes.data.split;
@@ -71,31 +72,41 @@ export default function CreateSplit() {
     const toastId = toast.loading("Creating group split...");
     
     try {
-      // Create a split with minimal data (group will be created later in SplitCalculated)
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = userData._id || userData.id;
+
+      // 1. Create a split
       const splitRes = await api.post("/splits", {
         splitType: "equal",
         totalAmount: 0,
+        name: splitName.trim(),
       });
-      
       const split = splitRes.data.split;
-      
-      // Create a session for tracking (groups also use sessions), passing userId so host is auto-added
-      const userData2 = JSON.parse(localStorage.getItem("user") || "{}");
+
+      // 2. Create a session for QR sharing
       const sessionRes = await api.post("/session", {
         name: splitName.trim(),
         splitId: split._id,
-        userId: userData2._id || userData2.id,
+        userId,
       });
-      
       const session = sessionRes.data.session;
-      
+
+      // 3. Create the group immediately so it appears in the Group nav
+      const groupRes = await api.post("/groups", {
+        name: splitName.trim(),
+        description: `Group created on ${new Date().toLocaleDateString()}`,
+        createdBy: userId,
+        members: [userId],
+        splitId: split._id,
+        sessionId: session._id,
+      });
+      const groupId = groupRes.data?.data?.id || groupRes.data?.data?._id || groupRes.data?.id;
+
       toast.dismiss(toastId);
-      toast.success("Group split created successfully!");
+      toast.success("Group created & session ready!");
       
-      // Navigate with IDs in URL - data is in database
-      navigate(`/split/ready?splitId=${split._id}&sessionId=${session._id}&type=group`);
+      navigate(`/split/ready?splitId=${split._id}&sessionId=${session._id}&type=group&groupId=${groupId}`);
     } catch (err) {
-      console.error("Failed to create group split:", err);
       toast.dismiss(toastId);
       toast.error(
         err.response?.data?.message || "Failed to create group split. Please try again."

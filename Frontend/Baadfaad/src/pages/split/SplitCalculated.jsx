@@ -19,6 +19,7 @@ import khaltiLogo from "../../assets/khalti.png";
 import api from "../../config/config";
 import toast from "react-hot-toast";
 import useSessionSocket from "../../hooks/useSessionSocket";
+import { useAuth } from "../../context/authContext";
 
 function statusBadge(status) {
   switch (status) {
@@ -46,6 +47,7 @@ function statusBadge(status) {
 export default function SplitCalculated() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cleanRoundMode, setCleanRoundMode] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("esewa");
@@ -57,10 +59,12 @@ export default function SplitCalculated() {
 
   const [split, setSplit] = useState(null);
   const [session, setSession] = useState(null);
+  const [isHost, setIsHost] = useState(false);
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
   const fetchSplit = useCallback(async () => {
     try {
@@ -80,6 +84,20 @@ export default function SplitCalculated() {
         if (sessionId) {
           const sessionRes = await api.get(`/session/${sessionId}`);
           setSession(sessionRes.data);
+
+          // Detect if current user is host (first participant)
+          const normalizeId = (v) => {
+            if (!v) return "";
+            if (typeof v === "string") return v;
+            if (typeof v === "object") return String(v._id || v.id || v);
+            return String(v);
+          };
+          const currentUserId = normalizeId(user?._id || user?.id);
+          const firstP = sessionRes.data?.participants?.[0];
+          if (firstP && currentUserId) {
+            const hostId = normalizeId(firstP.user || firstP.participant || firstP._id);
+            setIsHost(hostId === currentUserId);
+          }
         }
       } catch {
         toast.error("Failed to load session data");
@@ -156,25 +174,14 @@ export default function SplitCalculated() {
     setFinishing(true);
     try {
       await api.post(`/splits/${split._id}/finalize`);
-
-      const sessionName = session?.name || session?.session?.name;
-
-      // Check if this was a group split based on type param
-      if (type === "group" && sessionName) {
-        try {
-          await api.post("/groups", {
-            name: sessionName,
-            description: `Group created from split on ${new Date().toLocaleDateString()}`,
-            members: breakdown.map((b) => b.user?._id || b.participant?._id).filter(Boolean),
-          });
-          toast.success("Group created successfully!");
-        } catch {
-          toast.error("Failed to create group");
-        }
-      }
-
       toast.success("Split archived!");
-      navigate("/dashboard");
+
+      // Host with a group → navigate to group settlement page
+      if (isHost && type === "group" && groupId) {
+        navigate(`/group/${groupId}/settlement`);
+      } else {
+        navigate("/dashboard");
+      }
     } catch {
       toast.error("Failed to finalize split");
       navigate("/dashboard");

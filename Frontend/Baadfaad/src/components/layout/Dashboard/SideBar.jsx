@@ -13,7 +13,7 @@ import { useAuth } from "../../../context/authContext";
 const menuItems = [
   { label: "Home", icon: FaThLarge, to: "/dashboard" },
   { label: "Create Split", icon: FaHistory, to: "/split/create" },
-  { label: "Group", icon: FaUserFriends, to: "/group/details" },
+  { label: "Group", icon: FaUserFriends, to: "/group" },
   { label: "About", icon: FaUsers, to: "/about" },
   { label: "Contact", icon: FaCog, to: "/contact" },
 ];
@@ -42,8 +42,12 @@ export default function SideBar({ isOpen, onClose }) {
       >
         {/* Navigation Menu */}
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-          {menuItems.map(({ label, icon: Icon, to }) => (
-            <NavLink
+          {menuItems.map(({ label, icon: Icon, to }, index) => (
+            <div key={label}>
+              {index > 0 && (
+                <hr className="my-1 border-zinc-200" />
+              )}
+              <NavLink
               key={label}
               to={to}
               onClick={onClose}
@@ -73,6 +77,7 @@ export default function SideBar({ isOpen, onClose }) {
                 </>
               )}
             </NavLink>
+            </div>
           ))}
         </nav>
 

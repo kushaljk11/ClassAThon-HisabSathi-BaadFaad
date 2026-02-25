@@ -61,6 +61,7 @@ export default function SplitBreakdown() {
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = storedUser?._id || storedUser?.id;
@@ -190,7 +191,7 @@ export default function SplitBreakdown() {
 
   // --- Continue to SplitCalculated page (host navigates everyone) ---
   const handleContinue = () => {
-    const targetPath = `/split/calculated?splitId=${splitId}&sessionId=${sessionId}&type=${type}`;
+    const targetPath = `/split/calculated?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
     emitHostNavigate(sessionId, targetPath);
     navigate(targetPath);
   };

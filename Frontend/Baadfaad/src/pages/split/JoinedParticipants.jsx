@@ -28,6 +28,7 @@ export default function SessionLobby() {
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
   const normalizeId = (value) => {
     if (!value) return "";
@@ -119,7 +120,7 @@ export default function SessionLobby() {
   const isCurrentUserHost = participants.length > 0 && participants[0]?.name === "You";
 
   const handleContinueToScan = () => {
-    const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}`;
+    const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
     emitHostNavigate(sessionId, path);
     navigate(path);
   };

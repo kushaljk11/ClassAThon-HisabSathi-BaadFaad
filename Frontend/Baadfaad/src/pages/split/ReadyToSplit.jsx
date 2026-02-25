@@ -17,6 +17,7 @@ export default function ReadyToSplit() {
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -55,7 +56,7 @@ export default function ReadyToSplit() {
   };
 
   const handleGoToLobby = () => {
-    navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
+    navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`);
   };
 
   if (loading) {

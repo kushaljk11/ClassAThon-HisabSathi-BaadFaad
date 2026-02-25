@@ -27,6 +27,7 @@ export default function ScanBill() {
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
+  const groupId = searchParams.get("groupId");
 
   const normalizeId = (value) => {
     if (!value) return "";
@@ -182,7 +183,7 @@ export default function ScanBill() {
       });
 
       // Navigate with IDs - data is in database
-      const path = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}`;
+      const path = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
       if (sessionId) emitHostNavigate(sessionId, path);
       navigate(path);
     } catch (err) {

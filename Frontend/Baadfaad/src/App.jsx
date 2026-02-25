@@ -10,7 +10,7 @@ import ReadyToSplit from './pages/split/ReadyToSplit'
 import JoinedParticipants from './pages/split/JoinedParticipants'
 import SplitBreakdown from './pages/split/SplitBreakdown'
 import SplitCalculated from './pages/split/SplitCalculated'
-import Settlement from './pages/split/Settelment'
+import Settlement from './pages/group/Settelment'
 import Nudge from './pages/Group/Nudge'
 import Group from './pages/Group/Group'
 import Login from './pages/Auth/Login'
@@ -54,7 +54,9 @@ function AppContent() {
         <Route path="/split/breakdown" element={<ProtectedRoute><SplitBreakdown /></ProtectedRoute>} />
         <Route path="/split/calculated" element={<ProtectedRoute><SplitCalculated /></ProtectedRoute>} />
         <Route path="/split/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
-        <Route path="/group" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
+        <Route path="/group" element={<ProtectedRoute><Group /></ProtectedRoute>} />
+        <Route path="/group/:groupId/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
+        <Route path="/group/:groupId/nudge" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
         <Route path="/group/details" element={<ProtectedRoute><Group /></ProtectedRoute>} />
       </Routes>
     </Router>
