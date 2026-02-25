@@ -11,7 +11,6 @@ import nudgeRoutes from './routes/nudge.route.js';
 import groupRoutes from './routes/group.routes.js';
 import participantRoutes from './routes/participant.routes.js';
 import splitRoutes from './routes/split.routes.js';
-import sessionRoutes from './routes/session.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 
 connectDB();
@@ -27,7 +26,6 @@ app.use('/api/mail', mailRoutes);
 app.use('/api/nudge', nudgeRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/splits', splitRoutes);
-app.use('/api/sessions', sessionRoutes);
 app.use('/api/receipts', receiptRoutes);
 
 app.get('/', (req, res) => {

@@ -69,14 +69,14 @@ export default function SplitBreakdown() {
             recipientName: name,
             recipientEmail: email,
             senderName: "BaadFaad",
-            groupName: split.session?.name || "Split",
+            groupName: localStorage.getItem("splitName") || "Split",
             amount: b.amount,
           }).catch(() => {}); // don't block on nudge failures
         }
       }
       localStorage.removeItem("currentSplit");
-      localStorage.removeItem("currentSession");
-      localStorage.removeItem("currentReceipt");
+
+      localStorage.removeItem("splitName");
       navigate("/dashboard");
     } catch (err) {
       console.error("Finalize failed:", err);

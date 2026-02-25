@@ -28,17 +28,14 @@ export default function SplitCalculated() {
 
   // Load split data from localStorage (saved by ScanBill) or fetch from API
   const [split, setSplit] = useState(null);
-  const [session, setSession] = useState(null);
 
   useEffect(() => {
     const storedSplit = localStorage.getItem("currentSplit");
-    const storedSession = localStorage.getItem("currentSession");
     if (storedSplit) setSplit(JSON.parse(storedSplit));
-    if (storedSession) setSession(JSON.parse(storedSession));
   }, []);
 
   // Derived from API data or fallback
-  const totalAmount = split?.totalAmount || session?.totalAmount || 0;
+  const totalAmount = split?.totalAmount || 0;
   const breakdown = split?.breakdown || [];
 
   // Find the "big spender" — participant with highest amount
@@ -86,10 +83,10 @@ export default function SplitCalculated() {
     setFinishing(true);
     try {
       await api.post(`/splits/${split._id}/finalize`);
-      // Clean up stored session data
-      localStorage.removeItem("currentSession");
+      // Clean up stored data
       localStorage.removeItem("currentSplit");
-      localStorage.removeItem("currentReceipt");
+
+      localStorage.removeItem("splitName");
       navigate("/dashboard");
     } catch (err) {
       console.error("Finalize failed:", err);

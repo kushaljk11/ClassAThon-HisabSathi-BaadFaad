@@ -7,14 +7,16 @@ import { SPLIT_TYPE } from '../config/constants.js';
  * @param {string} splitType - One of SPLIT_TYPE values
  * @param {Object} receipt - Receipt document with items and totalAmount
  * @param {Array} breakdown - Incoming breakdown hints (percentages, custom amounts, item assignments)
- * @param {string} sessionId - The session ObjectId
+ * @param {Array} participantIds - Array of Participant ObjectIds to split among
  * @returns {Array} Calculated breakdown array ready to be saved on the Split document
  */
-export const calculateSplit = async (splitType, receipt, breakdown = [], sessionId) => {
-  const participants = await Participant.find({ session: sessionId });
+export const calculateSplit = async (splitType, receipt, breakdown = [], participantIds = []) => {
+  const participants = participantIds.length
+    ? await Participant.find({ _id: { $in: participantIds } })
+    : [];
 
   if (!participants.length) {
-    throw new Error('No participants found for this session');
+    throw new Error('No participants found');
   }
 
   switch (splitType) {

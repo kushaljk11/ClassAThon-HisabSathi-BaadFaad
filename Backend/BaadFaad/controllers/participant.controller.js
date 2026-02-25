@@ -10,14 +10,10 @@ export const createParticipant = async (req, res, next) => {
   }
 };
 
-// fetch list of participants, optionally filtered by session
+// fetch list of participants
 export const getParticipants = async (req, res, next) => {
   try {
-    const { sessionId } = req.query;
-    const filter = {};
-    if (sessionId) filter.session = sessionId;
-
-    const participants = await Participant.find(filter);
+    const participants = await Participant.find();
     res.json(participants);
   } catch (err) {
     next(err);

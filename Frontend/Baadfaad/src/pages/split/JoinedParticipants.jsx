@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
-import api from "../../config/config";
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -16,46 +15,20 @@ const COLORS = [
 export default function SessionLobby() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState(null);
-  const [participants, setParticipants] = useState([]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("currentSession");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setSession(parsed);
-      fetchSession(parsed._id);
+  const splitName = localStorage.getItem("splitName") || "Split Session";
 
-      // Poll every 3 seconds
-      const interval = setInterval(() => fetchSession(parsed._id), 3000);
-      return () => clearInterval(interval);
-    }
-  }, []);
-
-  const fetchSession = async (sessionId) => {
-    try {
-      const res = await api.get(`/sessions/${sessionId}`);
-      const s = res.data.session;
-      setSession(s);
-      localStorage.setItem("currentSession", JSON.stringify(s));
-      setParticipants(
-        (s.participants || []).map((p, i) => ({
-          ...p,
-          initial: p.name?.[0]?.toUpperCase() || "?",
-          ...COLORS[i % COLORS.length],
-        }))
-      );
-    } catch (err) {
-      console.error("Failed to fetch session:", err);
-    }
-  };
+  // Static placeholder participants — will be replaced when sessions are integrated
+  const participants = [
+    { id: 1, name: "You", initial: "Y", isHost: true, ...COLORS[0] },
+  ];
 
   const handleContinueToScan = () => {
     navigate("/split/scan");
   };
 
   const handleLeave = () => {
-    localStorage.removeItem("currentSession");
+    localStorage.removeItem("splitName");
     navigate("/dashboard");
   };
 
@@ -73,7 +46,7 @@ export default function SessionLobby() {
             </p>
             <p className="mt-2 text-base text-slate-500">
               {" "}
-              Session: <span className="font-bold text-slate-700">{session?.name || 'Loading...'}</span>
+              Split: <span className="font-bold text-slate-700">{splitName}</span>
             </p>
           </div>
 
@@ -91,21 +64,21 @@ export default function SessionLobby() {
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
                   Status
                 </p>
-                <p className="text-lg font-bold text-slate-900">{session?.status || 'waiting'}</p>
+                <p className="text-lg font-bold text-slate-900">waiting</p>
               </div>
 
               <div className="rounded-xl bg-zinc-50 p-3">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Session ID
+                  Split
                 </p>
-                <p className="text-lg font-bold text-slate-900">#{session?.code || '...'}</p>
+                <p className="text-lg font-bold text-slate-900 truncate">{splitName}</p>
               </div>
             </div>
 
             <div className="space-y-3">
               {participants.map((participant) => (
                 <div
-                  key={participant._id || participant.id}
+                  key={participant.id}
                   className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 p-4"
                 >
                   <div className="flex items-center gap-3">
@@ -137,7 +110,7 @@ export default function SessionLobby() {
                 Continue to Scan Bill
               </button>
               <button onClick={handleLeave} className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
-                Leave Session
+                Leave
               </button>
             </div>
           </div>

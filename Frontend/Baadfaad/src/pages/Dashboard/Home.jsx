@@ -22,14 +22,14 @@ export default function Home() {
   const [recentSplits, setRecentSplits] = useState([]);
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSplits = async () => {
       try {
-        const res = await api.get("/sessions");
-        const sessions = res.data.sessions || [];
-        const mapped = sessions.slice(0, 5).map((s, i) => ({
-          title: s.name,
+        const res = await api.get("/splits");
+        const splits = res.data.splits || [];
+        const mapped = splits.slice(0, 5).map((s, i) => ({
+          title: s.notes || s.receipt?.restaurant || `Split #${i + 1}`,
           date: new Date(s.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
-          members: `${s.participants?.length || 0} participants`,
+          members: `${s.breakdown?.length || 0} participants`,
           amount: `Rs. ${(s.totalAmount || 0).toLocaleString()}`,
           status: s.status === "finalized" ? "SETTLED" : "PENDING",
           statusStyle:
@@ -42,10 +42,10 @@ export default function Home() {
         setRecentSplits(mapped);
       } catch (err) {
         // If API fails, show empty state
-        console.error("Failed to fetch sessions:", err);
+        console.error("Failed to fetch splits:", err);
       }
     };
-    fetchSessions();
+    fetchSplits();
   }, []);
 
   return (

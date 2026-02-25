@@ -84,12 +84,6 @@ export default function ScanBill() {
   const hasItems = scannedData || manualItems.length > 0;
 
   const handleContinue = async () => {
-    const session = JSON.parse(localStorage.getItem("currentSession") || "{}");
-    if (!session._id) {
-      setError("No active session found. Please create a session first.");
-      return;
-    }
-
     // Build all items from scanned + manual
     const allItems = [
       ...(scannedData?.items || []).map((item) => ({
@@ -104,16 +98,17 @@ export default function ScanBill() {
       })),
     ];
 
+    const totalAmount = calculateTotal();
+
     setSaving(true);
     setError("");
     try {
       // Create receipt in backend
       const receiptRes = await api.post("/receipts", {
-        sessionId: session._id,
         restaurant: scannedData?.restaurant || "",
         address: scannedData?.address || "",
         items: allItems,
-        totalAmount: calculateTotal(),
+        totalAmount,
       });
 
       // Store receipt for next pages
@@ -121,9 +116,9 @@ export default function ScanBill() {
 
       // Create a split (equal by default)
       const splitRes = await api.post("/splits", {
-        sessionId: session._id,
         receiptId: receiptRes.data.receipt._id,
         splitType: "equal",
+        totalAmount,
         breakdown: [],
       });
 

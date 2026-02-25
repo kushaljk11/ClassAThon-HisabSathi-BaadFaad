@@ -2,11 +2,6 @@ import mongoose from 'mongoose';
 
 const receiptSchema = new mongoose.Schema(
   {
-    session: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Session',
-      required: true,
-    },
     restaurant: {
       type: String,
       trim: true,

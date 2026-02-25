@@ -7,8 +7,8 @@ import {
   FaUserSecret,
   FaSpinner,
 } from "react-icons/fa";
-import SideBar from "../../components/layout/Dashboard/SideBar";
-import TopBar from "../../components/layout/Dashboard/TopBar";
+import SideBar from "../../components/layout/dashboard/SideBar";
+import TopBar from "../../components/layout/dashboard/TopBar";
 import api from "../../config/config";
 
 export default function Nudge() {
@@ -33,17 +33,9 @@ export default function Nudge() {
 
   const fetchMembers = async () => {
     try {
-      // Get participants from the current session or all participants
-      const stored = localStorage.getItem("currentSession");
-      let participantList = [];
-      if (stored) {
-        const session = JSON.parse(stored);
-        const res = await api.get(`/sessions/${session._id}`);
-        participantList = res.data.session?.participants || [];
-      } else {
-        const res = await api.get("/participants");
-        participantList = res.data || [];
-      }
+      // Get participants from the API
+      const res = await api.get("/participants");
+      const participantList = res.data || [];
 
       // Map to nudge-friendly format
       const mapped = participantList.map((p) => {
