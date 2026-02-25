@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
@@ -9,9 +9,11 @@ import {
   FaPlus,
   FaTimes,
   FaCalculator,
+  FaSpinner,
 } from "react-icons/fa";
 import esewaLogo from "../../assets/esewa.png";
 import khaltiLogo from "../../assets/khalti.png";
+import api from "../../config/config";
 
 export default function SplitCalculated() {
   const navigate = useNavigate();
@@ -22,48 +24,39 @@ export default function SplitCalculated() {
   const [selectedTags, setSelectedTags] = useState(["Dinner"]);
   const [showAddTag, setShowAddTag] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [finishing, setFinishing] = useState(false);
 
-  const totalAmount = 5420;
-  const bigSpender = {
-    name: "Anish",
-    amount: 2800,
-    badge: "VIP CONTRIBUTOR",
-  };
+  // Load split data from localStorage (saved by ScanBill) or fetch from API
+  const [split, setSplit] = useState(null);
 
-  const participants = [
-    {
-      name: "Rahul K.C.",
-      subtitle: "Owes Anish",
-      amount: 840,
-      payment: "eSewa",
-      paymentColor: "bg-green-100 text-green-700",
+  useEffect(() => {
+    const storedSplit = localStorage.getItem("currentSplit");
+    if (storedSplit) setSplit(JSON.parse(storedSplit));
+  }, []);
+
+  // Derived from API data or fallback
+  const totalAmount = split?.totalAmount || 0;
+  const breakdown = split?.breakdown || [];
+
+  // Find the "big spender" — participant with highest amount
+  const bigSpender = breakdown.length
+    ? breakdown.reduce((max, b) => (b.amount > max.amount ? b : max), breakdown[0])
+    : null;
+
+  const participants = breakdown.map((b) => {
+    const name = b.user?.name || b.participant?.name || "Participant";
+    return {
+      name,
+      subtitle: bigSpender ? `Owes ${bigSpender.user?.name || bigSpender.participant?.name || "payer"}` : "",
+      amount: cleanRoundMode ? Math.round(b.amount / 10) * 10 : b.amount,
+      payment: selectedPayment === "esewa" ? "eSewa" : "Khalti",
+      paymentColor:
+        selectedPayment === "esewa"
+          ? "bg-green-100 text-green-700"
+          : "bg-purple-100 text-purple-700",
       avatar: "👤",
-    },
-    {
-      name: "Sita Sharma",
-      subtitle: "Owes Anish",
-      amount: 920,
-      payment: "Khalti",
-      paymentColor: "bg-purple-100 text-purple-700",
-      avatar: "👤",
-    },
-    {
-      name: "Jenish Roy",
-      subtitle: "Owes Anish",
-      amount: 880,
-      payment: "G PAY",
-      paymentColor: "bg-blue-100 text-blue-700",
-      avatar: "👤",
-    },
-    {
-      name: "Birod T.",
-      subtitle: "Owes Anish",
-      amount: 1000,
-      payment: "Manual Pay",
-      paymentColor: "bg-zinc-100 text-zinc-700",
-      avatar: "👤",
-    },
-  ];
+    };
+  });
 
   const handleToggleTag = (tag) => {
     if (selectedTags.includes(tag)) {
@@ -82,8 +75,25 @@ export default function SplitCalculated() {
     }
   };
 
-  const handleFinish = () => {
-    navigate("/dashboard");
+  const handleFinish = async () => {
+    if (!split?._id) {
+      navigate("/dashboard");
+      return;
+    }
+    setFinishing(true);
+    try {
+      await api.post(`/splits/${split._id}/finalize`);
+      // Clean up stored data
+      localStorage.removeItem("currentSplit");
+
+      localStorage.removeItem("splitName");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Finalize failed:", err);
+      navigate("/dashboard");
+    } finally {
+      setFinishing(false);
+    }
   };
 
   return (
@@ -128,10 +138,10 @@ export default function SplitCalculated() {
                     </h3>
                   </div>
                   <p className="mt-1 text-xs text-slate-600 md:text-sm">
-                    {bigSpender.name} paid Rs. {bigSpender.amount.toLocaleString()}
+                    {bigSpender ? `${bigSpender.user?.name || bigSpender.participant?.name || 'Someone'} paid Rs. ${bigSpender.amount.toLocaleString()}` : 'No data yet'}
                   </p>
                   <span className="mt-2 inline-block rounded-full bg-amber-200 px-2 py-1 text-xs font-bold uppercase tracking-wider text-amber-800 md:px-3">
-                    {bigSpender.badge}
+                    VIP CONTRIBUTOR
                   </span>
                 </div>
               </div>
@@ -329,9 +339,10 @@ export default function SplitCalculated() {
             <button
               type="button"
               onClick={handleFinish}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 md:px-8 md:py-4 md:text-lg"
+              disabled={finishing}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-400 px-6 py-3 text-base font-bold text-slate-900 shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 md:px-8 md:py-4 md:text-lg disabled:opacity-50"
             >
-              <FaArchive />
+              {finishing ? <FaSpinner className="animate-spin" /> : <FaArchive />}
               FINISH & ARCHIVE
             </button>
             <p className="mt-3 text-center text-xs text-slate-400">

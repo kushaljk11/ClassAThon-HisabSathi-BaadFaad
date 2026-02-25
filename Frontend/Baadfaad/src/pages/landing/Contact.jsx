@@ -1,14 +1,48 @@
+import { useState } from "react";
 import {
   FaArrowRight,
   FaAt,
   FaEnvelope,
   FaInstagram,
   FaWhatsapp,
+  FaSpinner,
 } from "react-icons/fa";
 import Footer from "../../components/layout/landing/Footer";
 import Topbar from "../../components/layout/landing/Topbar";
+import api from "../../config/config";
 
 export default function Contact() {
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.message) {
+      setError("Please fill in email and message");
+      return;
+    }
+    setSending(true);
+    setError("");
+    try {
+      await api.post("/mail/send", {
+        to: "contact@baadfaad.com",
+        subject: `Contact from ${formData.name || "Anonymous"} (${formData.email})`,
+        text: formData.message,
+      });
+      setSent(true);
+      setFormData({ name: "", email: "", message: "" });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-linear-to-br from-emerald-50 via-zinc-50 to-violet-50 text-slate-900">
       <Topbar />
@@ -92,13 +126,24 @@ export default function Contact() {
           </section>
 
           <section className="rounded-4xl bg-white p-8 shadow-sm sm:p-10">
-            <form className="space-y-5">
+            {sent ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 text-2xl mb-4">✓</div>
+                <p className="text-xl font-bold text-slate-900">Message Sent!</p>
+                <p className="mt-2 text-sm text-slate-500">We'll get back to you soon.</p>
+                <button type="button" onClick={() => setSent(false)} className="mt-6 rounded-full bg-emerald-400 px-6 py-3 text-sm font-bold text-slate-900">Send Another</button>
+              </div>
+            ) : (
+            <form className="space-y-5" onSubmit={handleSubmit}>
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-500">
                   Full Name
                 </span>
                 <input
                   type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
                   placeholder="Enter your name"
                   className="w-full rounded-full bg-zinc-100 px-5 py-4 text-sm text-slate-700 outline-none ring-1 ring-transparent placeholder:text-slate-400 focus:ring-emerald-300"
                 />
@@ -110,6 +155,9 @@ export default function Contact() {
                 </span>
                 <input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                   placeholder="name@example.com"
                   className="w-full rounded-full bg-zinc-100 px-5 py-4 text-sm text-slate-700 outline-none ring-1 ring-transparent placeholder:text-slate-400 focus:ring-emerald-300"
                 />
@@ -121,18 +169,26 @@ export default function Contact() {
                 </span>
                 <textarea
                   rows={4}
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
                   placeholder="Tell us what's on your mind..."
                   className="w-full resize-none rounded-[1.8rem] bg-zinc-100 px-5 py-4 text-sm text-slate-700 outline-none ring-1 ring-transparent placeholder:text-slate-400 focus:ring-emerald-300"
                 />
               </label>
 
+              {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+
               <button
                 type="submit"
-                className="mt-3 w-full rounded-full bg-linear-to-r from-emerald-950 to-slate-900 px-8 py-5 text-lg font-bold text-white shadow-lg"
+                disabled={sending}
+                className="mt-3 w-full rounded-full bg-linear-to-r from-emerald-950 to-slate-900 px-8 py-5 text-lg font-bold text-white shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {sending ? <FaSpinner className="animate-spin" /> : null}
                 Send Message <span className="text-emerald-300">&gt;</span>
               </button>
             </form>
+            )}
 
             <p className="mt-6 text-center text-xs font-medium text-slate-400">
               Average response time: &lt; 2 hours

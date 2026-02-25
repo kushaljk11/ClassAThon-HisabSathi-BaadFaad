@@ -6,7 +6,7 @@ const router = express.Router();
 // create a new participant
 router.post('/', participantCtrl.createParticipant);
 
-// list participants (optional session filter via ?sessionId=...)
+// list participants
 router.get('/', participantCtrl.getParticipants);
 
 // single participant operations

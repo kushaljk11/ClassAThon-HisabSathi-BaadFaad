@@ -1,53 +1,36 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SideBar from "../../components/layout/dashboard/SideBar";
 import TopBar from "../../components/layout/dashboard/TopBar";
 
+const COLORS = [
+  { color: "bg-purple-200", textColor: "text-purple-700" },
+  { color: "bg-pink-200", textColor: "text-pink-700" },
+  { color: "bg-blue-200", textColor: "text-blue-700" },
+  { color: "bg-teal-200", textColor: "text-teal-700" },
+  { color: "bg-orange-200", textColor: "text-orange-700" },
+  { color: "bg-rose-200", textColor: "text-rose-700" },
+];
+
 export default function SessionLobby() {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Mock data matching the participant list in the screenshot
+  const splitName = localStorage.getItem("splitName") || "Split Session";
+
+  // Static placeholder participants — will be replaced when sessions are integrated
   const participants = [
-    {
-      id: 1,
-      name: "Aman Gupta",
-      initial: "A",
-      color: "bg-purple-200",
-      textColor: "text-purple-700",
-      isHost: true,
-    },
-    {
-      id: 2,
-      name: "Priya Sharma",
-      initial: "P",
-      color: "bg-pink-200",
-      textColor: "text-pink-700",
-      isHost: false,
-    },
-    {
-      id: 3,
-      name: "Rahul Verma",
-      initial: "R",
-      color: "bg-blue-200",
-      textColor: "text-blue-700",
-      isHost: false,
-    },
-    {
-      id: 4,
-      name: "Sneha Patel",
-      initial: "S",
-      color: "bg-teal-200",
-      textColor: "text-teal-700",
-      isHost: false,
-    },
-    {
-      id: 5,
-      name: "Vikram Singh",
-      initial: "V",
-      color: "bg-orange-200",
-      textColor: "text-orange-700",
-      isHost: false,
-    },
+    { id: 1, name: "You", initial: "Y", isHost: true, ...COLORS[0] },
   ];
+
+  const handleContinueToScan = () => {
+    navigate("/split/scan");
+  };
+
+  const handleLeave = () => {
+    localStorage.removeItem("splitName");
+    navigate("/dashboard");
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -63,8 +46,7 @@ export default function SessionLobby() {
             </p>
             <p className="mt-2 text-base text-slate-500">
               {" "}
-              You can share the session ID with your friends to invite them to
-              join this split session.
+              Split: <span className="font-bold text-slate-700">{splitName}</span>
             </p>
           </div>
 
@@ -75,21 +57,21 @@ export default function SessionLobby() {
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
                   Participants
                 </p>
-                <p className="text-lg font-bold text-emerald-600">5 Joined</p>
+                <p className="text-lg font-bold text-emerald-600">{participants.length} Joined</p>
               </div>
 
               <div className="rounded-xl bg-zinc-50 p-3">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Pending invitations
+                  Status
                 </p>
-                <p className="text-lg font-bold text-slate-900">2</p>
+                <p className="text-lg font-bold text-slate-900">waiting</p>
               </div>
 
               <div className="rounded-xl bg-zinc-50 p-3">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Session ID
+                  Split
                 </p>
-                <p className="text-lg font-bold text-slate-900">#BF - 9021</p>
+                <p className="text-lg font-bold text-slate-900 truncate">{splitName}</p>
               </div>
             </div>
 
@@ -124,11 +106,11 @@ export default function SessionLobby() {
             </div>
 
             <div className="mt-8 space-y-3">
-              <button className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+              <button onClick={handleContinueToScan} className="w-full rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
                 Continue to Scan Bill
               </button>
-              <button className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
-                Leave Session
+              <button onClick={handleLeave} className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+                Leave
               </button>
             </div>
           </div>
