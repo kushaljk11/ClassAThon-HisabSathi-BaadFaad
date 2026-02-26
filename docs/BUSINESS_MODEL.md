@@ -1,39 +1,86 @@
-*Business Strategy and Model*
-This document outlines the strategic business framework for BaadFaad, detailng how we solve a critical market friction in Nepal through a sustainable, scalable, and profit-driven model.
+# BaadFaad Business Model
 
+This document explains BaadFaad’s business strategy in simple terms: what problem we solve, how we are different, how we can earn, and how we scale.
 
-*Value Proposition & Competitive Moat*
-BaadFaad differentiates itself from global alternatives like Splitwise and Tricount by solving hyper-local challenges specific to the Nepalese Gen-Z demographic.
+## 1) Problem We Solve
 
-Unlike international platforms, BaadFaad focuses on providing local support such as currency in NPR and integration of local payment APIs like eSewa and Khalti.
-Utilizing a Progressive Web App (PWA) architecture, which enables users to calculate and complete bill splits and also make payments within seconds without the need of mandatory registration or downloading the application.
+People splitting bills (especially students and young professionals) face three common issues:
 
-By automating anonymous payment reminders through WhatsApp, the system helps prevent social awkwardness related to debt, paying bills on time into frictionless social interaction.
+- manual math errors,
+- delayed repayments,
+- social awkwardness when reminding friends.
 
+BaadFaad solves this by combining instant split calculation, local payment support, and polite reminders.
 
-*Diversified Revenue Streams*
-Our financial sustainability is built on a multi-layered monetization strategy that balances user growth with profitability.
+## 2) Value Proposition (Why BaadFaad)
 
-Freemium SaaS Model: The core utility remains free for casual users to drive mass adoption, while a Premium Tier (NPR 199/month) provides advanced features such as recurring group profiles and comprehensive spending history.
+BaadFaad is built for Nepal-first usage, unlike global tools such as Splitwise/Tricount.
 
-Transactional Commissions: We capture a convenience fee of 0.5% to 1% on every settlement processed through our integrated payment rails, directly monetizing the transaction volume.
+### Core Differentiators
 
-B2B Promotional Partnerships: The platform serves as a marketing channel for restaurants and cafes, offering sponsored food menu placements and shoutouts ranging from NPR 20,000 to NPR 200,000 based on the exposure plan.
+- **Local-first product**: NPR support and local wallet/payment integration (eSewa, Khalti).
+- **Fast and lightweight**: Progressive Web App (PWA), no mandatory app download.
+- **Low-friction usage**: users can split and settle quickly, even with minimal onboarding.
+- **Social comfort layer**: anonymous/soft reminder flow reduces debt-related awkwardness.
 
+## 3) Revenue Model
 
-*Strategic Execution Roadmap*
-Our tactical approach focuses on building regional density before scaling to a national fintech ecosystem.
+BaadFaad uses a multi-stream model so growth and sustainability can happen together.
 
-Phase I: Regional Dominance (0–6 Months): We aim to capture the Itahari and Dharan dining circuits by partnering with the top 50 student-favored establishments to place QR codes directly on dining tables. This phase targets a base of 1,000 active users with an estimated 10% premium conversion rate.
+### A) Freemium SaaS
 
-Phase II: National Expansion (6–12 Months): Our objective is to scale to 5,000 users and NPR 200,000 in monthly revenue by integrating with national Point of Sale (POS) systems, allowing bill data to flow into the app automatically via API.
+- Free core experience for mass adoption.
+- Premium tier: **NPR 199/month** for advanced features (recurring groups, richer history/analytics).
 
-Targeted Outreach: We focus specifically on the 18–30 age demographic (students and young professionals) through high-intent channels including Meta advertisement campaigns and on-campus seminars.
+### B) Transactional Fees
 
+- Platform convenience fee on settlements via integrated rails.
+- Fee range: **0.5% to 1%** per transaction.
 
-4. Market Reality & Risk Mitigation
-BaadFaad is positioned within a rapidly growing digital landscape with a built-in contingency for market fluctuations.
+### C) B2B Promotional Partnerships
 
-Market Scale (TAM): We are operating in a market with over 4 million active smartphone users and a digital wallet transaction volume exceeding NPR 40 Billion monthly, representing a massive opportunity for a specialized logic layer.
+- Restaurants/cafes can buy visibility inside the platform (sponsored menu placement, shoutouts).
+- Campaign pricing range: **NPR 20,000 to NPR 200,000** based on exposure.
 
-Contingency Strategy: If organic consumer adoption stalls, our "Zero Customer" pivot involves transitioning into a B2B Service Provider. In this model, we offer BaadFaad to restaurant owners as an internal "Fast-Checkout" tool to enhance staff efficiency and streamline customer turnover.
+## 4) Go-to-Market Roadmap
+
+### Phase I: Regional Focus (0–6 months)
+
+- Focus cities: **Itahari + Dharan**.
+- Partner with top **50 student-favored restaurants/cafes**.
+- Place QR-led entry points at tables.
+- Target: **1,000 active users** and ~**10% premium conversion**.
+
+### Phase II: National Scale (6–12 months)
+
+- Expand to broader Nepal market.
+- Integrate with POS systems for direct bill-to-app flow.
+- Target: **5,000 users** and around **NPR 200,000 monthly revenue**.
+
+### Audience Strategy
+
+- Primary segment: **18–30 years** (students + young professionals).
+- Channels: Meta ads, campus activations, community events.
+
+## 5) Market Opportunity
+
+- Estimated reachable base: **6k+ active smartphone users**.
+- Digital wallet ecosystem: **NPR 100k+ monthly transaction volume**.
+- Opportunity: become the “social settlement layer” on top of existing payment rails.
+
+## 6) Risk & Backup Plan
+
+### Main Risk
+
+- Consumer growth may be slower than expected in early stages.
+
+### Mitigation / Pivot
+
+- “Zero Customer” B2B pivot: offer BaadFaad as an internal **Fast Checkout Tool** for restaurants.
+- Value for merchants: faster table turnover, smoother staff workflow, lower billing friction.
+
+---
+
+## One-Line Summary
+
+BaadFaad is a Nepal-first bill-splitting and settlement platform with a freemium + transaction + B2B partnership model, designed to scale from campus-heavy local adoption to a national fintech utility.
