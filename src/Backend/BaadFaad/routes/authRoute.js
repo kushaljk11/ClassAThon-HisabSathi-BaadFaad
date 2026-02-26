@@ -35,7 +35,7 @@ router.get(
   (req, res) => {
     const { token, user } = req.user;
     res.redirect(
-      `http://localhost:5173/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
+      `https://baadfaad.vercel.app/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
     );
   }
 );
