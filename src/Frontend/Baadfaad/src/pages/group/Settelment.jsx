@@ -10,8 +10,8 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import api from "../../config/config";
 import toast from "react-hot-toast";
 import {

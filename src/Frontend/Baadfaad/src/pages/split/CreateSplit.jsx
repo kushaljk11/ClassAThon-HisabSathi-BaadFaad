@@ -13,8 +13,8 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import { FaReceipt, FaQrcode, FaUserFriends } from "react-icons/fa";
 import api from "../../config/config";
 import toast, { Toaster } from "react-hot-toast";

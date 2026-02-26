@@ -20,8 +20,8 @@ import {
   FaArrowRight,
   FaExclamationTriangle,
 } from "react-icons/fa";
-import SideBar from "../../components/layout/dashboard/SideBar";
-import TopBar from "../../components/layout/dashboard/TopBar";
+import SideBar from "../../components/layout/Dashboard/SideBar";
+import TopBar from "../../components/layout/Dashboard/TopBar";
 import api from "../../config/config";
 import toast, { Toaster } from "react-hot-toast";
 import useSessionSocket, { emitHostNavigate } from "../../hooks/useSessionSocket";
