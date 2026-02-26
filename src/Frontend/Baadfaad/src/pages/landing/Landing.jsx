@@ -46,8 +46,8 @@ import {
   FaUsers,
   FaWallet,
 } from "react-icons/fa";
-import esewaLogo from "../../assets/esewa.png";
-import khaltiLogo from "../../assets/khalti.png";
+import esewaLogo from "@root-assets/esewa.png";
+import khaltiLogo from "@root-assets/khalti.png";
 
 /* ── Intersection Observer hook for scroll-triggered animations ──────── */
 function useOnScreen(options = {}) {

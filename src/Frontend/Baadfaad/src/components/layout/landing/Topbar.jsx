@@ -11,7 +11,7 @@
  *
  * @module components/layout/landing/Topbar
  */
-import logo from "../../../assets/Logo-01.png";
+import logo from "@root-assets/Logo-01.png";
 import { Link, useLocation } from "react-router-dom";
 
 export default function Topbar() {

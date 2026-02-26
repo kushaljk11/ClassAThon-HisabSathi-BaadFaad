@@ -10,7 +10,7 @@
  */
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/Logo-01.png';
+import logo from '@root-assets/Logo-01.png';
 import api from '../../config/config';
 import { API_URL, BASE_URL } from '../../config/config';
 import  {AuthContext}  from '../../context/authContext';

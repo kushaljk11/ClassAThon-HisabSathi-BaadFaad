@@ -1,323 +1,132 @@
-## BaadFaad / HisabSathi – Smart Bill Splitting Platform
+# BaadFaad / HisabSathi
 
-BaadFaad (HisabSathi) is a **full‑stack bill splitting and settlement platform** designed for real‑world group payments in Nepal.  
-It combines **AI-powered bill parsing**, **flexible split logic**, **real‑time sessions**, and a **PWA frontend** to remove the awkwardness of settling shared bills.
-
-The system was originally built for a hackathon and has since been structured as a two‑part monorepo:
-
-- **Backend**: `src/Backend/BaadFaad` – Node.js/Express + MongoDB + Socket.IO + Google Gemini bill parser
-- **Frontend**: `src/Frontend/Baadfaad` – React (Vite) + Tailwind + PWA
-- **Database**: Since we are using noSQL(MongoDB) and there is no need for seeding any data in the system the database folder is not included.
+**Smart bill splitting and settlement platform for Nepal — split bills, not friendships.**
 
 ---
 
-### Core Features
+## 1. Project Title and One-Line Description
 
-- **AI‑powered bill parsing**
-  - Upload or scan a bill image; the backend uses **Google Gemini** (via `@google/genai`) to extract line items, subtotal, tax, and grand total  
-  - Output is normalized JSON that feeds directly into the split engine
-
-- **Flexible splitting engine**
-  - Equal split, percentage‑based, custom amounts, and **item‑based** splits  
-  - Central logic in `calculateSplit` computes per‑participant amounts and percentages from the parsed receipt
-
-- **Group & session workflows**
-  - Create/join **sessions** and **groups** for recurring friends/teams
-  - Manage participants, track who has paid, and finalize settlements
-  - Real‑time updates via **Socket.IO**
-
-- **Nudges and email notifications**
-  - Email delivery via **SMTP (Nodemailer)** for invitations, summaries, and payment reminders
-  - Optional “nudge” flows to ping friends who haven’t settled yet
-
-- **Modern PWA frontend**
-  - Landing page with animated hero, feature highlights, and testimonials
-  - Full **PWA install support** (`beforeinstallprompt`, app‑installed events, offline‑ready build)
-  - Smooth scroll animations, counters, and polished UI throughout
-
-- **Payment‑friendly UX for Nepal**
-  - Designed around common friction points like “Rs. 7 change drama”
-  - Visual emphasis on **eSewa** and **Khalti** as settlement channels (marketing & UX focus)
+**BaadFaad (HisabSathi)** — A full-stack bill-splitting and payment-settlement app that lets groups scan or enter bills, split costs fairly (equal, percentage, or item-based), join via QR/link, and settle up with minimal awkwardness.
 
 ---
 
-### Tech Stack
+## 2. Problem Statement
 
-- **Backend (API & Realtime)**
-  - Node.js + **Express 5**
-  - **MongoDB** with **Mongoose**
-  - **Socket.IO** for real‑time session updates
-  - **JWT** authentication + **Passport Google OAuth 2.0**
-  - **Nodemailer** + SMTP for email
-  - **@google/genai** (Google Gemini) for bill parsing
-  - `tesseract.js` available for OCR‑related tasks
-
-- **Frontend (Web + PWA)**
-  - **React 19** + **React Router 7**
-  - **Vite 7** bundler/dev server
-  - **Tailwind CSS 4** for design system & utility classes
-  - `socket.io-client` for realtime
-  - `react-hot-toast` for feedback toasts
-  - `vite-plugin-pwa` for PWA assets and service worker
+Splitting restaurant and group bills in Nepal is painful: manual math with VAT and service charge, one person always overpaying and chasing others, and the classic "Rs. 7 change" drama. The post-dinner ritual of figuring who owes what takes too long and strains friendships. There was no single app built for Nepali groups that combined easy bill capture, flexible splitting, and a path to pay (eSewa/Khalti) in one place.
 
 ---
 
-### Repository Structure
+## 3. Solution Overview
 
-High‑level structure relevant to this system:
-
-- `src/Backend/BaadFaad/`
-  - `server.js` – Express entry point (HTTP + Socket.IO, route mounting)
-  - `config/`
-    - `database.js` – Mongo connection
-    - `socket.js` – Socket.IO initialization
-    - `passport.js`, `constants.js`, etc.
-  - `routes/`
-    - `authRoute.js` – auth & Google OAuth
-    - `bill.routes.js` – bill upload / parsing
-    - `group.routes.js` – group management
-    - `mail.routes.js` – email utilities
-    - `nudge.route.js` – nudge/reminder flows
-    - `participant.routes.js` – participants in a session/split
-    - `receipt.routes.js` – receipts and bill records
-    - `session.route.js` – live split sessions
-    - `split.routes.js` – split lifecycle (create, update, finalize, delete)
-  - `controllers/` – per‑domain business logic (auth, groups, splits, mail, etc.)
-  - `models/` – Mongoose models (`userModel`, `group.model`, `split.model`, `session.model`, `participant.model`, `receipt.model`, `nudge.model`)
-  - `utils/`
-    - `BillParsher.js` – AI bill parser using Google Gemini
-    - `calculateSplit.js` – core split algorithms (equal / percentage / custom / item‑based)
-    - `generateToken.js`, `response.js`, etc.
-  - `templates/` – email templates (nudges, payment summary, welcome, etc.)
-  - `package.json` – backend scripts and dependencies
-
-- `src/Frontend/Baadfaad/`
-  - `src/App.jsx` – main React tree + routing
-  - `src/context/authContext.jsx` – global auth state (user, token, login/logout, loading)
-  - `src/components/common/` – `ProtectedRoute`, `PublicRoute`, `Loader`, etc.
-  - `src/components/layout/landing/` – `Topbar`, `Footer` for marketing pages
-  - `src/components/layout/Dashboard/` – `SideBar`, `TopBar` for authenticated area
-  - `src/pages/landing/` – `Landing`, `AboutUs`, `Contact`
-  - `src/pages/Auth/` – `Login`, `AuthCallback`
-  - `src/pages/Dashboard/` – `Home`, `JoinSession`
-  - `src/pages/split/` – `CreateSplit`, `ScanBill`, `ReadyToSplit`, `JoinedParticipants`, `SplitBreakdown`, `SplitCalculated`
-  - `src/pages/Group/` – `Group`, `Nudge`, `Settelment`
-  - `src/config/` – environment config, Socket.IO client config
-  - `vite.config.js`, `index.html`, `App.css`, `index.css`, etc.
-
-- Root
-  - `.env.example` – example environment config (backend‑focused)
-  - `.env` – **local secrets (do not commit real values)**
-  - `src/Backend/readme.md`, `src/Frontend/readme.md` – currently used as placeholders
+BaadFaad solves this with an AI-powered bill parser (Google Gemini) that extracts line items and totals from a photo, a flexible split engine (equal, percentage, custom, or item-based), and real-time sessions so friends can join via QR or link and see their share instantly. The PWA frontend works on any device and can be installed like an app; optional email nudges and group settlements keep everyone aligned without awkward conversations.
 
 ---
 
-### Environment Configuration
+## 4. Unique Selling Proposition
 
-Environment variables are centralized via **root** `.env` / `.env.example`.  
-Copy and edit as needed:
-
-```bash
-cp .env.example .env
-```
-
-**Variables (backend‑critical):**
-
-- `PORT` – Backend HTTP port (default `5000`)
-- `MONGO_URI` – MongoDB connection string (Atlas or local)
-- `EMAIL_USER` / `EMAIL_PASS` – credentials for Nodemailer (e.g. Gmail app password)
-- `SMTP_HOST` / `SMTP_PORT` / `SMTP_MAIL` / `SMTP_PASS` – SMTP configuration
-- `JWT_SECRET` – secret used for signing JWTs
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – Google OAuth 2.0 credentials
-- `GOOGLE_CALLBACK_URL` – OAuth callback (e.g. `http://localhost:5000/api/auth/google/callback`)
-- `GOOGLE_API_KEY` – Google Gemini API key for AI bill parsing
-- `QR_BASE_URL` – Base URL for QR/session links (typically the frontend URL, e.g. `http://localhost:5173`)
-
-> **Security note:** The sample `.env` in this repository is for local development only.  
-> Replace all sensitive keys with your own values and **never commit real production secrets**.
+BaadFaad is built specifically for Nepali group payments: it understands local pain points (e.g. small-change drama), highlights eSewa and Khalti as settlement options, supports anonymous nudges so you don’t have to be the one chasing friends, and offers a “breakup safe” one-tap settlement to clear history. AI bill parsing plus multiple split modes and a PWA install experience set it apart from generic split apps.
 
 ---
 
-### Backend – Getting Started
+## 5. Tech Stack
 
-From the project root:
-
-```bash
-cd src/Backend/BaadFaad
-npm install
-```
-
-Then run the server in development mode:
-
-```bash
-npm run dev
-```
-
-This:
-
-- Loads environment variables from `.env`
-- Connects to MongoDB
-- Starts Express on `PORT` (default `5000`)
-- Initializes Socket.IO
-- Mounts API routes under `/api/*`
-
-Basic health check:
-
-- Open `http://localhost:5000/` → should respond with `Server is running!`
-
-**Production start:**
-
-```bash
-npm start
-```
+| Layer        | Technologies |
+|------------- |---------------|
+| **Backend**  | Node.js, Express 5, MongoDB, Mongoose, Socket.IO, JWT, Passport (Google OAuth 2.0), Nodemailer, @google/genai (Gemini),Tesseract.js
+| **Frontend** | React 19, React Router 7, Vite 7, Tailwind CSS 4, socket.io-client, react-hot-toast, vite-plugin-pwa |
+| **Database** | MongoDB (NoSQL; no seed data required) |
 
 ---
 
-### Frontend – Getting Started
+## Architecture Overview
 
-From the project root:
-
-```bash
-cd src/Frontend/Baadfaad
-npm install
-```
-
-Run the development server:
-
-```bash
-npm run dev
-```
-
-By default, Vite will start on `http://localhost:5173`.  
-The app includes:
-
-- Landing/marketing pages at `/`
-- Auth flow (`/login`, `/auth/callback`) using Google OAuth
-- Dashboard & split flows behind protected routes (`/dashboard`, `/split/*`, `/group/*`)
-
-**Frontend scripts:**
-
-- `npm run dev` – start Vite dev server
-- `npm run build` – production build
-- `npm run preview` – preview production build locally
-- `npm run lint` – run ESLint
+At a high level, the **React + Vite frontend** talks to the **Express backend controllers** over REST and Socket.IO.  
+The backend persists bills, users, sessions, and splits in **MongoDB**, connects to **payment gateways (eSewa / Khalti)** to verify payments and callbacks, and uses **Socket.IO** to push real-time updates (status changes, new participants, settlements) back to all connected group members.  
+You can see this flow summarized in the `Architecture.md` diagram: Frontend → Backend Controllers → MongoDB / Payment Gateway / Socket.IO → back to members.
 
 ---
 
-### High‑Level API Overview
+## 6. Setup Instructions (Step-by-Step)
 
-All backend APIs are mounted under `/api/*`. Key route groups:
+**Prerequisites:** Node.js (v18+), npm, MongoDB (local or Atlas URI), and a `.env` file (see Environment Variables below).
 
-- **`/api/auth`**
-  - Google OAuth and JWT‑based authentication
-  - Login, callback, token issuance
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ClassAThon-HisabSathi-BaadFaad
+   ```
 
-- **`/api/bills`**
-  - Bill upload & parsing endpoints
-  - Uses `BillParsher.js` (Google Gemini) to extract structured receipt data
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` and fill in all required keys (see Section 7).
 
-- **`/api/splits`**
-  - Create a split from a receipt
-  - Retrieve/update a split
-  - Mark participant payment status
-  - Finalize a split and lock in amounts
+3. **Backend setup and run**
+   ```bash
+   cd src/Backend/BaadFaad
+   npm install
+   npm run dev
+   ```
+   Backend runs at `http://localhost:5000`. Health check: open `http://localhost:5000/` — you should see "Server is running!".
 
-- **`/api/session`**
-  - Manage real‑time split sessions
-  - Join/leave via links or QR
+4. **Frontend setup and run** (in a new terminal)
+   ```bash
+   cd src/Frontend/Baadfaad
+   npm install
+   npm run dev
+   ```
+   Frontend runs at `http://localhost:5173`.
 
-- **`/api/groups`**
-  - Create and manage friend groups / squads
-  - Group‑level settlements and history
+5. **Use the app**
+   - Open `http://localhost:5173` in a browser.
+   - Sign in with Google (ensure OAuth callback URL is set in Google Cloud Console).
+   - Create or join a split, scan/enter a bill, and invite others via link or QR.
 
-- **`/api/participants`**
-  - Participant CRUD within sessions/splits
-
-- **`/api/receipts`**
-  - Store and retrieve receipt data for splits
-
-- **`/api/mail` & `/api/nudge`**
-  - Emailing of invites, summaries, and nudges
-
-Some routes are public (e.g. joining a split via link) while others are protected by JWT middleware (`protect`).
-
----
-
-### Split Logic (Conceptual)
-
-The core split engine lives in `utils/calculateSplit.js` and supports:
-
-- **Equal split**
-  - Total amount divided equally across participants (rounded to 2 decimals)
-
-- **Percentage split**
-  - Each participant specifies a percentage; amounts are derived from that
-
-- **Custom amount split**
-  - Direct amounts per person; percentages are derived for summaries
-
-- **Item‑based split**
-  - Each participant selects items they consumed; amounts are the sum of those items
-
-The engine returns a breakdown array that is attached to a `Split` document, which the frontend then uses to render per‑person amounts and statuses.
+**Production:** Backend: `npm start`. Frontend: `npm run build` then serve the `dist/` folder.
 
 ---
 
-### Authentication & Frontend Guarding
+## 7. Environment Variables
 
-On the frontend:
+Create a `.env` file at the **project root** (or where the backend loads it), using `.env.example` as a template. Required keys:
 
-- `AuthProvider` (`src/context/authContext.jsx`) manages:
-  - `user`, `isAuthenticated`, `isLoading`
-  - `login(user, token)` and `logout()`
-  - Rehydrates from `localStorage` on load
+| Variable                    | Description                                                               |
+|-----------------------------|---------------------------------------------------------------------------|
+| `PORT`                      | Backend server port (default: `5000`)                                     |
+| `MONGO_URI`                 | MongoDB connection string (Atlas or local)                                |
+| `JWT_SECRET`                | Secret for signing JWT tokens                                             |
+| `GOOGLE_CLIENT_ID`          | Google OAuth 2.0 client ID                                                |
+| `GOOGLE_CLIENT_SECRET`      | Google OAuth 2.0 client secret                                            |
+| `GOOGLE_CALLBACK_URL`       | OAuth callback URL (e.g. `http://localhost:5000/api/auth/google/callback`)|
+| `GOOGLE_API_KEY`            | Google Gemini API key (for AI bill parsing)                               |
+| `QR_BASE_URL`               | Base URL for join links/QR (e.g. `http://localhost:5173`)                 |
+| `EMAIL_USER` / `EMAIL_PASS` | Credentials for Nodemailer (e.g. Gmail app password)                      |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_MAIL` / `SMTP_PASS` | SMTP configuration for sending emails           |
 
-- `ProtectedRoute` wraps routes that require authentication, redirecting to `/login` if unauthenticated.
-- `PublicRoute` ensures some routes remain accessible only when logged out.
-
-On the backend:
-
-- JWTs are issued on successful login / OAuth and validated by `auth.middleware.js` (`protect`).
-- Protected routes (e.g. some `/api/splits`, `/api/groups`) require a valid JWT.
-
----
-
-### PWA & Installation
-
-The landing page implements:
-
-- Handling of the `beforeinstallprompt` event
-- Detection of standalone mode / app‑installed state
-- A prominent “Install BaadFaad on Your Phone” CTA section
-
-In production builds:
-
-- `vite-plugin-pwa` generates the service worker and manifest
-- The app can be installed to the home screen and works offline for cached routes
+**Security:** Do not commit real secrets. Use `.env.example` for structure only; keep production values in a secure env/config store.
 
 ---
 
-### Development Tips
+## 8. Deployment Link
 
-- Keep the **backend** and **frontend** running in separate terminals:
-  - Backend: `cd src/Backend/BaadFaad && npm run dev`
-  - Frontend: `cd src/Frontend/Baadfaad && npm run dev`
-- Make sure `QR_BASE_URL` in `.env` matches your frontend base URL.
-- For AI bill parsing to work, configure `GOOGLE_API_KEY` with a valid Gemini key.
-- For Google OAuth to work, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CALLBACK_URL`, and configure the same callback URL in the Google Cloud Console.
+- **Live app:** _[Add live URL when deployed]_
+- **APK / PWA:** _[Add link if you provide an APK or PWA install URL]_
 
 ---
 
-### Future Improvements / Ideas
+## 9. Team Members
 
-- Deeper integration with payment gateways (e.g. direct hand‑off to eSewa/Khalti APIs)
-- Exportable split reports (PDF/CSV)
-- More detailed analytics for frequent groups/sessions
-- Admin dashboard for monitoring active sessions and error logs
+| Name                | Role             |
+|----------------------------------------|
+| Kushal Jamarkattel  |                  |
+| Rojash Thapa        |                  |
+| Ujwal Timsina       |                  |
+| Regan Karki         |                  |
+| Samana Upreti       |                  |
 
 ---
 
-### License
-
-This project was created for hackathon use and internal experimentation.  
-Before using it in production, review the code, update all secrets, and apply your own license and compliance checks as needed.
+*
+Built for ClassAThon / HisabSathi hackathon. For production use, review security, replace all secrets, and apply your own license and compliance.
+*

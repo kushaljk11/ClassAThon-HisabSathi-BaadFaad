@@ -13,7 +13,7 @@
  * @module components/layout/Dashboard/TopBar
  */
 import { FaBars, FaTimes, FaSignOutAlt } from "react-icons/fa";
-import logo from "../../../assets/Logo-01.png";
+import logo from "@root-assets/Logo-01.png";
 import { useAuth } from "../../../context/authContext";
 import { useNavigate } from "react-router-dom";
 

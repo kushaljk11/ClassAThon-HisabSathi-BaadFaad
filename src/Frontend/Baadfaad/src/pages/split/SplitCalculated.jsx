@@ -27,8 +27,8 @@ import {
   FaClock,
   FaBolt,
 } from "react-icons/fa";
-import esewaLogo from "../../assets/esewa.png";
-import khaltiLogo from "../../assets/khalti.png";
+import esewaLogo from "@root-assets/esewa.png";
+import khaltiLogo from "@root-assets/khalti.png";
 import api from "../../config/config";
 import toast from "react-hot-toast";
 import useSessionSocket from "../../hooks/useSessionSocket";

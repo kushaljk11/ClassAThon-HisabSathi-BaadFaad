@@ -10,7 +10,7 @@
  *
  * @module components/layout/landing/Footer
  */
-import logo from '../../../assets/Logo-01.png'
+import logo from '@root-assets/Logo-01.png'
 
 export default function Footer() {
     return (
