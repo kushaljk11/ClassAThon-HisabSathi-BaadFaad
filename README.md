@@ -117,13 +117,13 @@ Create a `.env` file at the **project root** (or where the backend loads it), us
 
 ## 9. Team Members
 
-| Name                | Role             |
-|----------------------------------------|
-| Kushal Jamarkattel  |                  |
-| Rojash Thapa        |                  |
-| Ujwal Timsina       |                  |
-| Regan Karki         |                  |
-| Samana Upreti       |                  |
+| Name                   | Role                 |
+|-----------------------------------------------|
+| Kushal Jamarkattel     | Team Lead & Frontend |
+| Rojash Thapa           | Backend Developer    |
+| Ujwal Timsina          | Database & Logic     |
+| Regan Karki            | Business & Q/A       |
+| Samana Upreti          | Ui/Ux Design         |
 
 ---
 
