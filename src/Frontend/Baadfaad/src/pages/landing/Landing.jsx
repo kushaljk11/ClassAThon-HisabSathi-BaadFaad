@@ -98,9 +98,9 @@ const features = [
 ];
 
 const testimonials = [
-  { name: "Anish S.", role: "CS Student, Kathmandu", text: "Finally, no more WhatsApp calculator screenshots after momo night. BaadFaad just works." },
-  { name: "Priya K.", role: "Freelancer, Pokhara", text: "The Guilt Calculator saved our friend group. Now nobody can pretend they already paid 😂" },
-  { name: "Rohan M.", role: "Startup Founder", text: "We use it for every team dinner. The Table Timer always gets everyone laughing." },
+  { name: "Ujwal T.", role: "CS Student, Kathmandu", text: "Finally, no more WhatsApp calculator screenshots after momo night. BaadFaad just works." },
+  { name: "Rojash T.", role: "Freelancer, Pokhara", text: "The Guilt Calculator saved our friend group. Now nobody can pretend they already paid 😂" },
+  { name: "Rakey S.", role: "Startup Founder", text: "We use it for every team dinner. The Table Timer always gets everyone laughing." },
 ];
 
 /* ── Main Component ──────────────────────────────────────────────────── */
@@ -243,7 +243,7 @@ export default function Landing() {
                 <div className="mb-4 flex items-center justify-between text-xs text-slate-500">
                   <FaBars />
                   <span className="inline-flex items-center gap-1 font-bold text-slate-800">
-                    Momo Night <FaUtensils className="text-[10px]" />
+                    TopThumpi  <FaUtensils className="text-[10px]" />
                   </span>
                   <FaBell />
                 </div>
@@ -259,9 +259,9 @@ export default function Landing() {
 
                 <div className="mt-4 space-y-3 text-sm">
                   {[
-                    { name: "Anish", val: "Rs. 840", cls: "bg-zinc-50" },
-                    { name: "Sita", val: "PAID", cls: "bg-zinc-50", valCls: "text-emerald-400" },
-                    { name: "Rohan (You)", val: "Rs. 1,210", cls: "bg-green-100 border border-emerald-300" },
+                    { name: "Ujwal", val: "Rs. 840", cls: "bg-zinc-50" },
+                    { name: "Rojash", val: "PAID", cls: "bg-zinc-50", valCls: "text-emerald-400" },
+                    { name: "Jk (You)", val: "Rs. 1,210", cls: "bg-green-100 border border-emerald-300" },
                   ].map((r) => (
                     <div
                       key={r.name}
@@ -535,8 +535,8 @@ export default function Landing() {
         className="relative w-full bg-linear-to-br from-slate-900 to-slate-800 px-6 py-24 sm:px-8 lg:px-16 overflow-hidden"
       >
         {/* Animated decorative rings */}
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full border border-emerald-500/10 animate-pulse-ring" />
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[350px] rounded-full border border-emerald-400/10" style={{ animationDelay: "1s" }} />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-125 w-125 rounded-full border border-emerald-500/10 animate-pulse-ring" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-87.5 w-87.5 rounded-full border border-emerald-400/10" style={{ animationDelay: "1s" }} />
 
         <div
           className={`relative mx-auto flex w-full max-w-4xl flex-col items-center text-center ${pwaVisible ? "animate-fade-in-up" : "opacity-0"}`}

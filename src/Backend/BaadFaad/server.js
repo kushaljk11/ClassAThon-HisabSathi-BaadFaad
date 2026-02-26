@@ -20,9 +20,6 @@ import { createServer } from 'http';
 import connectDB from './config/database.js';
 import { initSocket } from './config/socket.js';
 
-// Load env vars BEFORE anything that needs them
-dotenv.config();
-
 // routes
 import mailRoutes from './routes/mail.routes.js';
 import nudgeRoutes from './routes/nudge.route.js';
@@ -39,8 +36,27 @@ import billRoutes from './routes/bill.routes.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load env vars from backend folder regardless of process.cwd()
-dotenv.config({ path: path.join(__dirname, '.env') });
+const envCandidates = [
+  process.env.BACKEND_ENV_PATH,
+  path.join(__dirname, '.env'),
+  path.join(__dirname, '..', '.env'),
+  path.join(__dirname, '..', '..', '.env'),
+  path.join(__dirname, '..', '..', '..', '.env'),
+  path.join(process.cwd(), '.env'),
+].filter(Boolean);
+
+let envLoaded = false;
+for (const envPath of envCandidates) {
+  const result = dotenv.config({ path: envPath });
+  if (!result.error) {
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  dotenv.config();
+}
 
 connectDB();
 

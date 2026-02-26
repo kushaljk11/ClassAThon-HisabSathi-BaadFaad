@@ -17,9 +17,11 @@ import { Link, useLocation } from "react-router-dom";
 export default function Topbar() {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const isAuthenticated = Boolean(localStorage.getItem("token"));
 
   const featuresHref = isHome ? "#features" : "/#features";
   const howItWorksHref = isHome ? "#how-it-works" : "/#how-it-works";
+  const startSplittingTo = isAuthenticated ? "/dashboard" : "/";
 
   return (
     <header className="w-full bg-white px-4 py-4 sm:px-6 lg:px-10">
@@ -60,7 +62,7 @@ export default function Topbar() {
         </nav>
 
         <Link
-          to="/"
+          to={startSplittingTo}
           className="rounded-full bg-emerald-400 px-6 py-2 text-sm font-bold text-white transition hover:bg-emerald-500 cursor-pointer"
         >
           Start Splitting

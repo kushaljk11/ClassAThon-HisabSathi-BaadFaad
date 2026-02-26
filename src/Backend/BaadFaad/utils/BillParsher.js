@@ -11,11 +11,20 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
-const api = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
+const envCandidates = [
+  process.env.BACKEND_ENV_PATH,
+  path.join(__dirname, "..", ".env"),
+  path.join(__dirname, "..", "..", ".env"),
+  path.join(__dirname, "..", "..", "..", ".env"),
+  path.join(__dirname, "..", "..", "..", "..", ".env"),
+  path.join(process.cwd(), ".env"),
+].filter(Boolean);
+
+for (const envPath of envCandidates) {
+  const result = dotenv.config({ path: envPath });
+  if (!result.error) break;
+}
 
 /**
  * Extract the first valid JSON object/array from an AI text response.
@@ -53,6 +62,10 @@ export async function parseBill(base64Image) {
     if (!process.env.GOOGLE_API_KEY) {
       throw new Error("GOOGLE_API_KEY is not configured");
     }
+
+    const api = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+    });
 
     console.log("🤖 Sending to Gemini for parsing...");
 
