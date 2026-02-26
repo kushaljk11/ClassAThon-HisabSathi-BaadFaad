@@ -58,3 +58,325 @@
 .stagger > *:nth-child(7) { animation-delay: 600ms; }
 .stagger > *:nth-child(8) { animation-delay: 700ms; }
 .stagger > *:nth-child(9) { animation-delay: 800ms; }
+
+
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: 2em;
+  margin-bottom: 0.75rem;
+}
+
+h3 {
+  font-size: 1.5em;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+/* PAYMENT FORM STYLES */
+.payment-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.styled-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  background-color: #3e3e3e;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+/* Form input focus states */
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+/*  BUTTON STYLES  */
+.submit-button {
+  grid-column: span 2;
+  padding: 0.75rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+  background-color: #535bf2;
+}
+
+.submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/*  LOADING STYLES  */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+  text-align: center;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #007bff;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* SUCCESS PAGE STYLES */
+.success-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px;
+  text-align: center;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  background-color: #2a2a2a;
+}
+
+.status-icon {
+  font-size: 48px;
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.status-icon.success {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+/* Success icon specific animation */
+.status-icon.success svg {
+  animation: checkmark 0.6s ease;
+}
+
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 50px;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+.transaction-details {
+  background-color: #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 30px 0;
+  text-align: left;
+}
+
+/* FAILURE PAGE STYLES*/
+.failure-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px;
+  text-align: center;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  background-color: #2a2a2a;
+}
+
+.status-icon.error {
+  background-color: #dc3545;
+  color: white;
+}
+
+.failure-message {
+  font-size: 1.2em;
+  color: #ff6b6b;
+  margin-bottom: 1.5rem;
+}
+
+.failure-details {
+  background-color: #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 30px 0;
+  text-align: left;
+}
+
+/*  ACTION BUTTONS  */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.go-home-button {
+  padding: 12px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.go-home-button:hover {
+  background-color: #0069d9;
+}
+
+.try-again-button {
+  padding: 12px 20px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.try-again-button:hover {
+  background-color: #5a6268;
+}
+
+/*  RESPONSIVE STYLES  */
+@media (max-width: 768px) {
+  .styled-form {
+    grid-template-columns: 1fr;
+  }
+  
+  .submit-button {
+    grid-column: span 1;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .payment-container,
+  .success-container,
+  .failure-container {
+    padding: 20px;
+  }
+}
+
+/*  PRINT STYLES  */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .success-container,
+  .success-container * {
+    visibility: visible;
+  }
+  
+  .action-buttons {
+    display: none;
+  }
+  
+  .success-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+    background-color: white;
+    color: black;
+  }
+  
+  .transaction-details {
+    background-color: white;
+    border: 1px solid #ddd;
+  }
+}

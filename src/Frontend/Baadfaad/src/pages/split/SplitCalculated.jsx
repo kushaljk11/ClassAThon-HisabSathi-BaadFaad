@@ -236,6 +236,24 @@ export default function SplitCalculated() {
     }
   };
 
+  const handleProceedToPay = () => {
+    if (!totalAmount) {
+      toast.error("No payable amount found");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      amount: String(totalAmount),
+      gateway: selectedPayment,
+      splitId: splitId || "",
+      sessionId: sessionId || "",
+      type: type || "",
+      groupId: groupId || "",
+    });
+
+    navigate(`/payment?${params.toString()}`);
+  };
+
   return (
     <div className="flex min-h-screen bg-zinc-50">
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
@@ -453,6 +471,7 @@ export default function SplitCalculated() {
             </div>
             <button
               type="button"
+              onClick={handleProceedToPay}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 md:px-8 md:py-4 md:text-base"
             >
               ⚡ PROCEED TO PAY

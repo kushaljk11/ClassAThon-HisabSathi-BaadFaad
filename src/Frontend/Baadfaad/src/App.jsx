@@ -27,6 +27,9 @@ import Login from './pages/Auth/Login'
 import JoinSession from './pages/Dashboard/JoinSession'
 import JoinSplit from './pages/split/JoinSplit'
 import AuthCallback from './pages/Auth/AuthCallback'
+import PaymentForm from './components/layout/Payment/paymentForm'
+import PaymentSuccess from './components/layout/Payment/success'
+import PaymentFailure from './components/layout/Payment/failure'
 import { AuthProvider, useAuth } from './context/authContext'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import PublicRoute from './components/common/PublicRoute'
@@ -64,6 +67,9 @@ function AppContent() {
         <Route path="/split/breakdown" element={<ProtectedRoute><SplitBreakdown /></ProtectedRoute>} />
         <Route path="/split/calculated" element={<ProtectedRoute><SplitCalculated /></ProtectedRoute>} />
         <Route path="/split/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
+        <Route path="/payment" element={<ProtectedRoute><PaymentForm /></ProtectedRoute>} />
+        <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+        <Route path="/payment-failure" element={<ProtectedRoute><PaymentFailure /></ProtectedRoute>} />
         <Route path="/group" element={<ProtectedRoute><Group /></ProtectedRoute>} />
         <Route path="/group/:groupId/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
         <Route path="/group/:groupId/nudge" element={<ProtectedRoute><Nudge /></ProtectedRoute>} />
