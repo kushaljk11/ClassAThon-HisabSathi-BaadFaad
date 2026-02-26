@@ -30,7 +30,7 @@ const Login = () => {
     localStorage.setItem('pendingFullName', trimmedName);
     const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || window.location.origin;
     const googleAuthUrl = `${backendBaseUrl}/api/auth/google`;
-    // window.location.href = googleAuthUrl;
+    window.location.href = googleAuthUrl;
   };
 
   const handleContinue = async () => {
