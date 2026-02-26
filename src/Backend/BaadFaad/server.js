@@ -30,6 +30,7 @@ import splitRoutes from './routes/split.routes.js';
 import receiptRoutes from './routes/receipt.routes.js';
 import sessionRoutes from './routes/session.route.js';
 import billRoutes from './routes/bill.routes.js';
+import paymentRoutes from "./routes/payment.routes.js";
 
 
 
@@ -81,6 +82,7 @@ app.use('/api/splits', splitRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use("/api/session", sessionRoutes);
 app.use('/api/bills', billRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server is running!');
