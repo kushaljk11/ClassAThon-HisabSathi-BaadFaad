@@ -373,7 +373,7 @@ export default function SplitBreakdown() {
                     {/* Right: payment info */}
                     <div className="flex flex-wrap items-center gap-6">
                       {/* Amount Paid */}
-                      <div>
+                      <div className="min-w-44">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Amount Paid
                         </p>
@@ -385,10 +385,10 @@ export default function SplitBreakdown() {
                             value={amountPaid}
                             disabled={updatingIdx === i}
                             onChange={(e) => handlePaymentUpdate(i, "amountPaid", e.target.value)}
-                            className="mt-1 w-28 rounded-full border border-emerald-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400"
+                            className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                           />
                         ) : (
-                          <div className="mt-1 rounded-full bg-zinc-100 px-4 py-2 text-sm font-bold text-slate-700">
+                          <div className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-bold text-slate-700">
                             Rs {amountPaid.toLocaleString()}
                           </div>
                         )}

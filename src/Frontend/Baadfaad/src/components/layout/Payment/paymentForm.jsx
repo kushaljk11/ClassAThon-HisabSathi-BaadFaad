@@ -10,6 +10,10 @@ const PaymentComponent = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100";
+  const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
+
   const amountFromQuery = searchParams.get("amount") || "";
   const gatewayFromQuery = searchParams.get("gateway") || "esewa";
 
@@ -34,6 +38,12 @@ const PaymentComponent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (String(formData.paymentGateway).toLowerCase() === "khalti") {
+      toast.error("Khalti is currently noy Available");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -64,103 +74,120 @@ const PaymentComponent = () => {
   };
 
   return (
-    <div className="payment-container">
-      <h1>Payment Integration</h1>
-      <p>Please fill in all the details to proceed with payment</p>
-      <button type="button" onClick={() => navigate(-1)}>
-        Back
-      </button>
+    <div className="min-h-screen bg-zinc-100 px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-4 inline-flex items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-zinc-50"
+        >
+          Back
+        </button>
 
-      <div className="form-container">
-        <form className="styled-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="customerName">Full Name:</label>
-            <input
-              type="text"
-              id="customerName"
-              name="customerName"
-              value={formData.customerName}
-              onChange={handleChange}
-              required
-              placeholder="Enter your full name"
-            />
-          </div>
+        <div className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-8">
+          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Payment Integration</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Fill in the details below to proceed with secure payment.
+          </p>
 
-          <div className="form-group">
-            <label htmlFor="customerEmail">Email:</label>
-            <input
-              type="email"
-              id="customerEmail"
-              name="customerEmail"
-              value={formData.customerEmail}
-              onChange={handleChange}
-              required
-              placeholder="Enter your email"
-            />
-          </div>
+          <form className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="customerName" className={labelClass}>Full Name</label>
+              <input
+                type="text"
+                id="customerName"
+                name="customerName"
+                value={formData.customerName}
+                onChange={handleChange}
+                required
+                placeholder="Enter your full name"
+                className={inputClass}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="customerPhone">Phone Number:</label>
-            <input
-              type="tel"
-              id="customerPhone"
-              name="customerPhone"
-              value={formData.customerPhone}
-              onChange={handleChange}
-              required
-              placeholder="Enter your phone number"
-            />
-          </div>
+            <div>
+              <label htmlFor="customerEmail" className={labelClass}>Email</label>
+              <input
+                type="email"
+                id="customerEmail"
+                name="customerEmail"
+                value={formData.customerEmail}
+                onChange={handleChange}
+                required
+                placeholder="Enter your email"
+                className={inputClass}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="productName">Product/Service Name:</label>
-            <input
-              type="text"
-              id="productName"
-              name="productName"
-              value={formData.productName}
-              onChange={handleChange}
-              required
-              placeholder="Enter product/service name"
-            />
-          </div>
+            <div>
+              <label htmlFor="customerPhone" className={labelClass}>Phone Number</label>
+              <input
+                type="tel"
+                id="customerPhone"
+                name="customerPhone"
+                value={formData.customerPhone}
+                onChange={handleChange}
+                required
+                placeholder="Enter your phone number"
+                className={inputClass}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="amount">Amount (NPR):</label>
-            <input
-              type="number"
-              id="amount"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              required
-              min="1"
-              placeholder="Enter amount"
-            />
-          </div>
+            <div>
+              <label htmlFor="productName" className={labelClass}>Product / Service</label>
+              <input
+                type="text"
+                id="productName"
+                name="productName"
+                value={formData.productName}
+                onChange={handleChange}
+                required
+                placeholder="Enter product/service name"
+                className={inputClass}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="paymentGateway">Payment Method:</label>
-            <select
-              id="paymentGateway"
-              name="paymentGateway"
-              value={formData.paymentGateway}
-              onChange={handleChange}
-              required
-            >
-              <option value="esewa">eSewa</option>
-              <option value="khalti">Khalti</option>
-            </select>
-          </div>
+            <div>
+              <label htmlFor="amount" className={labelClass}>Amount (NPR)</label>
+              <input
+                type="number"
+                id="amount"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                required
+                min="1"
+                placeholder="Enter amount"
+                className={inputClass}
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Processing..." : "Proceed to Payment"}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="paymentGateway" className={labelClass}>Payment Method</label>
+              <select
+                id="paymentGateway"
+                name="paymentGateway"
+                value={formData.paymentGateway}
+                onChange={handleChange}
+                required
+                className={inputClass}
+              >
+                <option value="esewa">eSewa</option>
+                <option value="khalti">Khalti</option>
+              </select>
+            </div>
+
+            <div className="sm:col-span-2 mt-1">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-zinc-300"
+              >
+                {isSubmitting ? "Processing..." : "Proceed to Payment"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

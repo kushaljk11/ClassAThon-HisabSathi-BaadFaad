@@ -44,18 +44,16 @@ export default function TopBar({ onMenuToggle, isOpen }) {
           {/* User Profile (Desktop) */}
           {user && (
             <div className="hidden md:flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-linear-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
+              <div className="h-9 w-9 rounded-full bg-linear-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                {user.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="min-w-0 text-left flex flex-col justify-center">
+                <div className="text-sm font-semibold text-slate-800 leading-5 truncate">
+                  {user.name || 'User'}
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-slate-800 leading-tight">
-                    {user.name || 'User'}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate max-w-37.5">
-                    {user.email || 'user@example.com'}
-                  </p>
-                </div>
+                <span className="text-xs text-slate-500 leading-4 truncate max-w-37.5">
+                  {user.email || 'user@example.com'}
+                </span>
               </div>
 
               {/* Logout Button */}
