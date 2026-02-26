@@ -39,10 +39,7 @@ const PaymentComponent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (String(formData.paymentGateway).toLowerCase() === "khalti") {
-      toast.error("Khalti is currently noy Available");
-      return;
-    }
+    // Proceed with the selected gateway (khalti or esewa). Backend will validate gateway availability.
 
     setIsSubmitting(true);
 
