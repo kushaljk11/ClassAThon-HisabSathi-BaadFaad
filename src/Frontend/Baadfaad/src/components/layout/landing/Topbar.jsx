@@ -24,7 +24,7 @@ export default function Topbar() {
 
   const featuresHref = isHome ? "#features" : "/#features";
   const howItWorksHref = isHome ? "#how-it-works" : "/#how-it-works";
-  const startSplittingTo = isAuthenticated ? "/dashboard" : "/";
+  const startSplittingTo = isAuthenticated ? "/dashboard" : "/login";
 
   return (
     <header className="w-full bg-white px-4 py-4 sm:px-6 lg:px-10">
