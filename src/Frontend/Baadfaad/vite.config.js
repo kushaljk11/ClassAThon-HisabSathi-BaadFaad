@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  envDir: path.resolve(__dirname, '../../..'),
   publicDir: path.resolve(__dirname, '../../../assets'),
   resolve: {
     alias: {

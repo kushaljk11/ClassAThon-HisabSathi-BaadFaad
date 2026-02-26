@@ -10,8 +10,15 @@
  * @module config/config
  */
 import axios from "axios";
-export const API_URL = "http://localhost:5000/api";
-export const BASE_URL = "http://localhost:5000";
+
+const envApiUrl = import.meta.env.VITE_API_URL;
+const envBaseUrl = import.meta.env.VITE_BASE_URL;
+
+export const BASE_URL =
+  envBaseUrl?.replace(/\/+$/, "") || envApiUrl?.replace(/\/api\/?$/, "") || "";
+
+export const API_URL =
+  envApiUrl || (BASE_URL ? `${BASE_URL}/api` : "/api");
 
 const api = axios.create({
   baseURL: API_URL,

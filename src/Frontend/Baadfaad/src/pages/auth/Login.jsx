@@ -28,7 +28,7 @@ const Login = () => {
     }
 
     localStorage.setItem('pendingFullName', trimmedName);
-    const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || window.location.origin;
     const googleAuthUrl = `${backendBaseUrl}/api/auth/google`;
     window.location.href = googleAuthUrl;
   };
