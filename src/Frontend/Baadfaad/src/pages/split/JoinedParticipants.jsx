@@ -128,6 +128,7 @@ export default function SessionLobby() {
   const rawParticipants = session?.participants || [];
   const uniqueParticipants = [];
   const seenParticipantKeys = new Set();
+  let hasCurrentUser = false;
 
   rawParticipants.forEach((p, index) => {
     const participantId = normalizeId(p.user || p.participant || p._id);
@@ -144,6 +145,11 @@ export default function SessionLobby() {
       p.user?.email ||
       p.participant?.email ||
       `User ${index + 1}`;
+    const isCurrentUser =
+      (!!normalizedCurrentUserId && participantId === normalizedCurrentUserId) ||
+      (!!normalizedCurrentUserEmail &&
+        !!participantEmail &&
+        participantEmail === normalizedCurrentUserEmail);
 
     const dedupeKey =
       participantId
@@ -152,8 +158,13 @@ export default function SessionLobby() {
           ? `email:${participantEmail}`
           : `name:${String(participantName).trim().toLowerCase()}`;
 
+    if (isCurrentUser && hasCurrentUser) {
+      return;
+    }
+
     if (!seenParticipantKeys.has(dedupeKey)) {
       seenParticipantKeys.add(dedupeKey);
+      if (isCurrentUser) hasCurrentUser = true;
       uniqueParticipants.push(p);
     }
   });

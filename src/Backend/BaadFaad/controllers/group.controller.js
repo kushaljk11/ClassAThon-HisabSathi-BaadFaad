@@ -39,6 +39,12 @@ const sendError = (res, statusCode, message, details = null) => {
 };
 
 const isValidObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
+const toObjectIdString = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
 
 const formatMongooseError = (error) => {
   if (error?.code === 11000) {
@@ -312,35 +318,39 @@ export const joinGroup = async (req, res) => {
       return sendError(res, 400, 'Group is not active');
     }
 
+    // Self-heal historical duplicate member entries.
+    const uniqueMemberIds = [...new Set(group.members.map((m) => toObjectIdString(m)).filter(Boolean))];
+    if (uniqueMemberIds.length !== group.members.length) {
+      group.members = uniqueMemberIds;
+      await group.save();
+    }
+
     const memberIdToAdd = userId;
 
     if (!memberIdToAdd || !isValidObjectId(memberIdToAdd)) {
       return sendError(res, 400, 'Valid userId is required');
     }
 
-    // Check if user is already a member
-    if (group.members.includes(memberIdToAdd)) {
-      await group.populate('createdBy', 'fullName email avatarUrl');
-      await group.populate('members', 'fullName email avatarUrl');
-      return res.status(200).json({
-        success: true,
-        message: 'Already a member of this group',
-        data: group.toJSON(),
-      });
+    const alreadyMember = group.members.some((m) => toObjectIdString(m) === String(memberIdToAdd));
+
+    const updatedGroup = await Group.findByIdAndUpdate(
+      groupId,
+      { $addToSet: { members: memberIdToAdd } },
+      { new: true }
+    )
+      .populate('createdBy', 'fullName email avatarUrl')
+      .populate('members', 'fullName email avatarUrl');
+
+    if (!updatedGroup) {
+      return sendError(res, 404, 'Group not found');
     }
-
-    group.members.push(memberIdToAdd);
-    await group.save();
-
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
 
     // Emit a socket event so clients in the group's room see live joins
     try {
       const io = getIO();
-      const newMember = group.members.find((m) => String(m._id) === String(memberIdToAdd));
+      const newMember = updatedGroup.members.find((m) => String(m._id) === String(memberIdToAdd));
       io.to(String(group._id)).emit('participant-joined', {
-        participants: group.members,
+        participants: updatedGroup.members,
         newParticipant: newMember || { _id: memberIdToAdd },
       });
     } catch (e) {
@@ -350,10 +360,10 @@ export const joinGroup = async (req, res) => {
 
     // If this group is associated to a split, attempt to recalculate the split breakdown
     try {
-      if (group.splitId) {
-        const split = await Split.findById(group.splitId);
+      if (updatedGroup.splitId) {
+        const split = await Split.findById(updatedGroup.splitId);
         if (split) {
-          const membersPop = await Group.findById(group._id).populate('members', 'name fullName email');
+          const membersPop = await Group.findById(updatedGroup._id).populate('members', 'name fullName email');
           const members = membersPop.members || [];
           if (members.length > 0 && (split.totalAmount || split.totalAmount === 0)) {
             const total = split.totalAmount || 0;
@@ -378,7 +388,7 @@ export const joinGroup = async (req, res) => {
             // Notify room that split was updated (optional)
             try {
               const io = getIO();
-              io.to(String(group._id)).emit('split-updated', { splitId: split._id });
+              io.to(String(updatedGroup._id)).emit('split-updated', { splitId: split._id });
             } catch (e) {
               // ignore socket errors
             }
@@ -391,8 +401,8 @@ export const joinGroup = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Joined group successfully',
-      data: group.toJSON(),
+      message: alreadyMember ? 'Already a member of this group' : 'Joined group successfully',
+      data: updatedGroup.toJSON(),
     });
   } catch (error) {
     const formattedError = formatMongooseError(error);
@@ -418,22 +428,23 @@ export const addMember = async (req, res) => {
       return sendError(res, 400, 'Valid userId is required');
     }
 
-    const group = await Group.findById(groupId);
-
-    if (!group) {
+    const current = await Group.findById(groupId).select('members');
+    if (!current) {
       return sendError(res, 404, 'Group not found');
     }
 
-    // Check if user is already a member
-    if (group.members.includes(userId)) {
+    const alreadyMember = current.members.some((m) => toObjectIdString(m) === String(userId));
+    if (alreadyMember) {
       return sendError(res, 409, 'User is already a member of this group');
     }
 
-    group.members.push(userId);
-    await group.save();
-
-    await group.populate('createdBy', 'fullName email avatarUrl');
-    await group.populate('members', 'fullName email avatarUrl');
+    const group = await Group.findByIdAndUpdate(
+      groupId,
+      { $addToSet: { members: userId } },
+      { new: true }
+    )
+      .populate('createdBy', 'fullName email avatarUrl')
+      .populate('members', 'fullName email avatarUrl');
 
     return res.status(200).json({
       success: true,
@@ -473,7 +484,7 @@ export const removeMember = async (req, res) => {
       return sendError(res, 403, 'Cannot remove group creator');
     }
 
-    const memberIndex = group.members.indexOf(userId);
+    const memberIndex = group.members.findIndex((m) => toObjectIdString(m) === String(userId));
     if (memberIndex === -1) {
       return sendError(res, 404, 'User is not a member of this group');
     }
