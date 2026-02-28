@@ -1,46 +1,25 @@
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
-const envCandidates = [
-  process.env.BACKEND_ENV_PATH,
-  path.join(__dirname, "..", ".env"),
-  path.join(__dirname, "..", "..", ".env"),
-  path.join(__dirname, "..", "..", "..", ".env"),
-  path.join(__dirname, "..", "..", "..", "..", ".env"),
-  path.join(process.cwd(), ".env"),
-].filter(Boolean);
+async function testMail() {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST, // e.g., smtp.gmail.com
+    port: Number(process.env.SMTP_PORT || 587), // 587
+    secure: false, // true for 465, false for 587
+    auth: {
+      user: process.env.SMTP_USER || process.env.SMTP_MAIL || process.env.EMAIL_USER,
+      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
+    },
+  });
 
-for (const envPath of envCandidates) {
-  dotenv.config({ path: envPath });
-}
-
-const to = process.argv[2] || process.env.MAIL_TEST_TO || "kris.neparica@gmail.com";
-
-if (!to) {
-  console.error("MAIL_TEST_TO or CLI recipient is required.");
-  process.exit(1);
-}
-
-(async () => {
   try {
-    const { default: transporter } = await import("../config/mail.js");
-
-    await transporter.verifyMailConnection();
+    await transporter.verify(); // just check connection
     console.log("SMTP connection OK");
-
-    await transporter.sendMail({
-      to,
-      subject: "Test Nudge",
-      text: "Hello from BaadFaad!",
-    });
-
-    console.log(`Email sent to ${to}`);
   } catch (err) {
-    console.error("Email error", err?.message || err);
-    process.exit(1);
+    console.error("SMTP failed:", err.message);
   }
-})();
+}
+
+testMail();
