@@ -67,10 +67,9 @@ const httpServer = createServer(app);
 // Initialize Socket.IO
 initSocket(httpServer);
 
-// Configure CORS for the frontend. Default to local development hosts.
-// `FRONTEND_URL` may be a single origin or a comma-separated list of origins.
-// For development we include both common Vite ports (5173 and 5174).
-const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app,http://localhost:5173,http://localhost:5174';
+// Configure CORS for the frontend. `FRONTEND_URL` may be a single origin
+// or a comma-separated list of origins.
+const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app';
 const ALLOWED_ORIGINS = rawFrontend.split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
 
 if (process.env.NODE_ENV === 'production') {
@@ -108,7 +107,7 @@ app.get('/', (req, res) => {
 });
 
 httpServer.listen(PORT, '0.0.0.0', () => {
-  const frontend = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const frontend = (process.env.FRONTEND_URL || 'https://baadfaad.vercel.app').replace(/\/$/, '');
   const googleCallback = process.env.GOOGLE_CALLBACK_URL || 'not-set';
   console.log(`Server running on port ${PORT}`);
   console.log(`Frontend origin: ${frontend}`);

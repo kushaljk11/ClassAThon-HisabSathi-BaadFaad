@@ -51,7 +51,7 @@ const findBreakdownEntry = (breakdown, { id, email, name }) => {
 
 const buildSettlementLink = ({ providedLink, groupId }) => {
   if (providedLink && String(providedLink).trim()) return String(providedLink).trim();
-  const rawFrontend = String(process.env.FRONTEND_URL || "http://localhost:5173");
+  const rawFrontend = String(process.env.FRONTEND_URL || "https://baadfaad.vercel.app");
   const firstOrigin = rawFrontend.split(",")[0].trim().replace(/\/$/, "");
   if (!groupId) return firstOrigin;
   return `${firstOrigin}/group/${groupId}/settlement`;

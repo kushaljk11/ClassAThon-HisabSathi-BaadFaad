@@ -125,7 +125,7 @@ const initiatePayment = async (req, res) => {
     url: process.env.KHALTI_PAYMENT_URL, // should be v2/epayment/initiate
     data: {
       return_url: process.env.SUCCESS_URL,
-      website_url: process.env.WEBSITE_URL || "http://localhost:5173",
+      website_url: process.env.WEBSITE_URL || "https://baadfaad.vercel.app",
       amount: Math.round(numericAmount * 100),
       purchase_order_id: productId,
       purchase_order_name: productName,

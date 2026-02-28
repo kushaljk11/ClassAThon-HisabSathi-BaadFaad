@@ -35,7 +35,7 @@ router.get(
   },
   (req, res) => {
     const { token, user } = req.user;
-    const frontend = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const frontend = (process.env.FRONTEND_URL || 'https://baadfaad.vercel.app').replace(/\/$/, '');
     res.redirect(
       `${frontend}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
     );

@@ -15,7 +15,7 @@ let io = null;
  * Initialize Socket.IO with the HTTP server
  */
 export const initSocket = (httpServer) => {
-  const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app,http://localhost:5173,http://localhost:5174';
+  const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app';
   const allowedOrigins = rawFrontend
     .split(',')
     .map((s) => s.trim().replace(/\/$/, ''))
