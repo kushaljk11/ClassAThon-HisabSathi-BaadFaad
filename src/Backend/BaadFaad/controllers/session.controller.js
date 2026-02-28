@@ -142,6 +142,8 @@ export const joinSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { userId, participantId, name, email } = req.body;
+    const normalizedName = String(name || '').trim();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Validate session exists and hasn't expired
     const sessionCheck = await Session.findById(sessionId);
@@ -169,12 +171,18 @@ export const joinSession = async (req, res) => {
     } else if (participantId) {
       participantEntry.participant = participantId;
       dupFilters.push({ "participants.participant": participantId });
-    } else if (name) {
-      const Participant = (await import("../models/participant.model.js")).default;
-      const newParticipant = await Participant.create({ name, email });
-      participantEntry.participant = newParticipant._id;
-      participantEntry.name = newParticipant.name;
-      participantEntry.email = newParticipant.email;
+    } else if (normalizedName) {
+      // Guest join path: do NOT create Participant model records because that model
+      // requires a linked `user`. Store a lightweight participant entry in session.
+      participantEntry.name = normalizedName;
+      participantEntry.email = normalizedEmail;
+
+      // Prevent accidental duplicate joins for the same guest in one session.
+      if (normalizedEmail) {
+        dupFilters.push({ "participants.email": normalizedEmail });
+      } else {
+        dupFilters.push({ "participants.name": normalizedName });
+      }
     } else {
       return res.status(400).json({ message: "userId, participantId, or name is required" });
     }
