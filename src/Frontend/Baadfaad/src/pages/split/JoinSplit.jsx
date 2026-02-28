@@ -8,7 +8,7 @@
  *
  * @module pages/split/JoinSplit
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import TopBar from "../../components/layout/Dashboard/TopBar";
@@ -35,12 +35,7 @@ export default function JoinSplit() {
   const type = searchParams.get("type");
   const pathname = location.pathname || '';
 
-  useEffect(() => {
-    // Auto-join if user is logged in and has sessionId
-    if (currentUserId && sessionId) {
-      handleJoin();
-    }
-  }, [currentUserId, sessionId]);
+  
 
   // If link doesn't include explicit type, detect whether the splitId belongs to a group
   useEffect(() => {
@@ -54,6 +49,7 @@ export default function JoinSplit() {
           setDetectedType('session');
         }
       } catch (err) {
+        console.warn('groups/by-split failed', err);
         // 404 -> not a group, treat as session. Other errors -> default to session.
         setDetectedType('session');
       }
@@ -65,7 +61,7 @@ export default function JoinSplit() {
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
 
-  const handleJoin = async () => {
+  const handleJoin = useCallback(async () => {
     const effectiveTypeLocal = (pathname.includes('/group') ? 'group' : (pathname.includes('/session') ? 'session' : (type || detectedType || 'session')));
 
     // Validate depending on link type
@@ -85,7 +81,7 @@ export default function JoinSplit() {
       toast.error("You must be logged in to join a session");
       try {
         localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search }));
-      } catch (e) {}
+      } catch (e) { console.warn('postAuthRedirect save failed', e); }
       navigate("/login", { state: { from: location } });
       return;
     }
@@ -94,7 +90,7 @@ export default function JoinSplit() {
       toast.error('Group link requires Google login');
       try {
         localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search }));
-      } catch (e) {}
+      } catch (e) { console.warn('postAuthRedirect save failed', e); }
       navigate('/login', { state: { from: location } });
       return;
     }
@@ -120,14 +116,21 @@ export default function JoinSplit() {
         // Navigate to the lobby
         navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type || 'session'}`);
       }
-    } catch (err) {
+      } catch (err) {
       console.error("Failed to join session:", err);
       toast.dismiss(toastId);
       toast.error(err.response?.data?.message || "Failed to join session");
     } finally {
       setJoining(false);
     }
-  };
+  }, [currentUserId, sessionId, groupId, type, detectedType, pathname, isOAuthUser, navigate, location, splitId]);
+
+  // Auto-join when user becomes available
+  useEffect(() => {
+    if (currentUserId && sessionId) {
+      handleJoin();
+    }
+  }, [currentUserId, sessionId, handleJoin]);
 
   if (joining) {
     return (
@@ -155,7 +158,6 @@ export default function JoinSplit() {
           <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
           <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
           <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12">
-                <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
               <div className="mb-6 text-center">
                 <h1 className="text-3xl font-bold text-slate-900">Join Split Session</h1>
                 <p className="mt-2 text-base text-slate-500">Enter your name to join as a guest</p>
@@ -183,10 +185,9 @@ export default function JoinSplit() {
                       toast.dismiss(tId); toast.error(err.response?.data?.message || 'Failed to join');
                     } finally { setJoining(false); }
                   }} className="rounded-full bg-emerald-400 px-6 py-3 font-bold text-white">Join as guest</button>
-                  <button onClick={() => { try { localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search })); } catch(e){}; navigate('/login', { state: { from: location } }) }} className="rounded-full border px-6 py-3">Login</button>
+                  <button onClick={() => { try { localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search })); } catch (e) { console.warn(e); } navigate('/login', { state: { from: location } }) }} className="rounded-full border px-6 py-3">Login</button>
                 </div>
               </div>
-            </div>
           </main>
         </div>
       );
