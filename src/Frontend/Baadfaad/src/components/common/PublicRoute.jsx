@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
 
 /**
@@ -21,7 +21,13 @@ const PublicRoute = ({ children }) => {
   }
 
   // Redirect to dashboard if already authenticated
-  if (isAuthenticated) {
+  // If the user was redirected here from a protected route (state.from)
+  // or there is a stored `postAuthRedirect` (OAuth/guest flow), allow the
+  // login page to render so login logic can complete the post-auth redirect.
+  const location = useLocation();
+  const hasRedirectIntent = Boolean(location.state?.from) || Boolean(localStorage.getItem('postAuthRedirect'));
+
+  if (isAuthenticated && !hasRedirectIntent) {
     return <Navigate to="/dashboard" replace />;
   }
 

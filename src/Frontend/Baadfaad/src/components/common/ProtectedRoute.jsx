@@ -1,5 +1,6 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
+import { useMemo } from 'react';
 
 /**
  * ProtectedRoute component - Prevents unauthorized access to protected pages
@@ -20,9 +21,17 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  // Allow unauthenticated access for session join URLs
+  const location = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const pathname = location.pathname || '';
+
+  // Consider explicit session join path or legacy split paths with ?type=session as public
+  const isPublicSessionLink = pathname === '/session/join' || ((pathname === '/split/ready' || pathname === '/split/join' || pathname === '/split/joined') && searchParams.get('type') === 'session');
+
+  if (!isAuthenticated && !isPublicSessionLink) {
+    // Redirect to login, preserving the intended location for post-login redirect
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   // Render children if authenticated

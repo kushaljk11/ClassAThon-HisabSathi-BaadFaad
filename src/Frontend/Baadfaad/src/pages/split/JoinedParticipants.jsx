@@ -17,6 +17,7 @@ import { FaSpinner } from "react-icons/fa";
 import api from "../../config/config";
 import { useAuth } from "../../context/authContext";
 import useSessionSocket, { emitHostNavigate } from "../../hooks/useSessionSocket";
+import toast from 'react-hot-toast';
 
 const COLORS = [
   { color: "bg-purple-200", textColor: "text-purple-700" },
@@ -40,6 +41,8 @@ export default function SessionLobby() {
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
   const groupId = searchParams.get("groupId");
+
+  const roomId = type === 'group' ? groupId : sessionId;
 
   const normalizeId = (value) => {
     if (!value) return "";
@@ -69,6 +72,13 @@ export default function SessionLobby() {
           const sessionRes = await api.get(`/session/${sessionId}`);
           setSession(sessionRes.data);
         }
+
+        if (type === 'group' && groupId) {
+          const groupRes = await api.get(`/groups/${groupId}`);
+          // Normalize group data into session-like shape for UI
+          const grp = groupRes.data.data || groupRes.data;
+          setSession({ name: grp.name || 'Group', participants: grp.members || [] });
+        }
         if (splitId) {
           const splitRes = await api.get(`/splits/${splitId}`);
           setSplit(splitRes.data.split);
@@ -84,8 +94,27 @@ export default function SessionLobby() {
   }, [sessionId, splitId]);
 
   const handleParticipantJoined = useCallback((data) => {
-    if (data.session) {
+    // Socket emits { participants, newParticipant } — update participants list
+    if (data?.participants) {
+      setSession((prev) => ({ ...(prev || {}), participants: data.participants }));
+
+      // Notify host about a new participant join
+      try {
+        const hostId = data.participants?.[0]?._id || data.participants?.[0]?._id;
+        if (data.newParticipant) {
+          const normalizedHostId = String(hostId || "");
+          if (normalizedHostId && normalizedHostId === normalizedCurrentUserId) {
+            const newName = data.newParticipant?.name || 'Someone';
+            toast.success(`${newName} joined the session`);
+          }
+        }
+      } catch (e) {}
+      return;
+    }
+
+    if (data?.session) {
       setSession(data.session);
+      return;
     }
   }, []);
 
@@ -95,7 +124,7 @@ export default function SessionLobby() {
     }
   }, [navigate]);
 
-  useSessionSocket(sessionId, handleParticipantJoined, handleHostNavigate);
+  useSessionSocket(roomId, handleParticipantJoined, handleHostNavigate);
 
   const splitName = session?.name || "Split Session";
 
@@ -139,7 +168,7 @@ export default function SessionLobby() {
 
   const handleContinueToScan = () => {
     const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
-    emitHostNavigate(sessionId, path);
+    emitHostNavigate(roomId, path);
     navigate(path);
   };
 

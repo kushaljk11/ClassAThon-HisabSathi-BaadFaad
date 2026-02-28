@@ -35,10 +35,19 @@ const createNudgeTemplate = ({
 	currency = "NPR",
 	dueDate = "soon",
 	payLink = "#",
+	paidByName = '',
+	anonymous = true,
 }) => {
 	const subject = `Friendly reminder: ${currency} ${amount} pending in ${groupName}`;
 
-	const text = `Hi ${recipientName},\n\nGentle reminder for your pending share in ${groupName} to ${recipientName}.\nPending amount: ${currency} ${amount}\nDue date: ${dueDate}\nPay here: ${payLink}\n\n- BaadFaad`;
+	// Plain-text: include paidByName if provided
+	const whoPaidText = paidByName ? `${paidByName} covered part of this payment.` : `Someone covered part of this payment.`;
+	const text = `Hi ${recipientName},\n\nDid you forget? ${paidByName ? `${paidByName} paid NPR ${amount} on your behalf.` : `Someone paid NPR ${amount} on your behalf.`}\n\nPending amount: ${currency} ${amount}\nDue date: ${dueDate}\nPay here: ${payLink}\n\n- BaadFaad`;
+
+	// HTML: make message friendly and optionally show payer name (if provided)
+	const payerLine = paidByName
+		? `<p style="margin:0 0 12px;color:${BRAND_COLORS.textMuted};font-weight:600;">Did you forget? <strong>${paidByName}</strong> paid NPR ${amount} on your behalf.</p>`
+		: `<p style="margin:0 0 12px;color:${BRAND_COLORS.textMuted};">Gentle reminder for your pending share in <strong>${groupName}</strong>.</p>`;
 
 	const html = `
 	<div style="background:${BRAND_COLORS.pageBg};padding:24px;font-family:Arial,sans-serif;color:${BRAND_COLORS.textDark};">
@@ -51,9 +60,7 @@ const createNudgeTemplate = ({
 			<tr>
 				<td style="padding:24px;line-height:1.6;">
 					<p style="margin:0 0 12px;font-size:16px;">Hi ${recipientName},</p>
-					<p style="margin:0 0 12px;color:${BRAND_COLORS.textMuted};">
-						Gentle reminder for your pending share in <strong>${groupName}</strong> to <strong>${recipientName}</strong>.
-					</p>
+					${payerLine}
 					<div style="margin:16px 0;padding:16px;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;">
 						<p style="margin:0;font-size:14px;color:${BRAND_COLORS.textMuted};">Pending Amount</p>
 						<p style="margin:4px 0 0;font-size:28px;font-weight:700;color:${BRAND_COLORS.primaryDark};">${currency} ${amount}</p>

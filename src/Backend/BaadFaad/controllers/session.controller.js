@@ -9,7 +9,7 @@ import Session from "../models/session.model.js";
 import { User } from "../models/userModel.js";
 import { getIO } from "../config/socket.js";
 
-const QR_BASE_URL = process.env.QR_BASE_URL || 'http://localhost:5173';
+const QR_BASE_URL = process.env.QR_BASE_URL || 'https://baadfaad.vercel.app';
 
 /**
  * Generates a QR code as Base64 data URL.
@@ -55,7 +55,7 @@ export const createSession = async (req, res) => {
 
     const session = await Session.create({ name, splitId });
 
-    const joinUrl = `${QR_BASE_URL}/split/ready?splitId=${splitId}&sessionId=${session._id}&type=session`;
+    const joinUrl = `${QR_BASE_URL}/session/join?splitId=${splitId}&sessionId=${session._id}`;
     const qrCodeBase64 = await generateQRCode(joinUrl);
 
     session.qrCode = qrCodeBase64;

@@ -23,13 +23,21 @@ export default function Group() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        // Only fetch groups created by the current user (host-only)
+        // Fetch all groups then filter to ones the current user belongs to
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const userId = userData._id || userData.id;
-        const url = userId ? `/groups?createdBy=${userId}` : "/groups";
-        const res = await api.get(url);
+        const res = await api.get('/groups');
         const payload = res.data;
-        setGroups(Array.isArray(payload) ? payload : payload.data || payload.groups || []);
+        let all = Array.isArray(payload) ? payload : payload.data || payload.groups || [];
+        if (userId) {
+          all = all.filter((g) => {
+            const createdBy = g.createdBy?._id || g.createdBy || '';
+            if (String(createdBy) === String(userId)) return true;
+            const members = g.members || [];
+            return members.some((m) => String(m._id || m.id || m) === String(userId));
+          });
+        }
+        setGroups(all);
       } catch (err) {
         console.error("Failed to fetch groups:", err);
       } finally {

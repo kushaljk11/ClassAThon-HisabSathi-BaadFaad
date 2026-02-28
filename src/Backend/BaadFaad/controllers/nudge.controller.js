@@ -4,9 +4,58 @@
  * branded HTML emails to recipients, and exposes CRUD + split-summary endpoints.
  */
 import Nudge from "../models/nudge.model.js";
+import Split from "../models/split.model.js";
+import Group from "../models/group.model.js";
 import transporter from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
+
+const toId = (value) => String(value?._id || value?.id || value || "");
+
+const entryId = (entry) =>
+  toId(
+    (entry?.user && (entry.user._id || entry.user)) ||
+      (entry?.participant && (entry.participant._id || entry.participant)) ||
+      entry?._id ||
+      ""
+  );
+
+const entryName = (entry) =>
+  String(entry?.name || entry?.fullName || entry?.user?.name || entry?.participant?.name || "").trim();
+
+const entryEmail = (entry) =>
+  String(entry?.email || entry?.user?.email || entry?.participant?.email || "").trim().toLowerCase();
+
+const isEntrySettled = (entry) => {
+  const share = Number(entry?.amount || 0);
+  const paid = Number(entry?.amountPaid || 0);
+  const due = Math.max(0, share - paid);
+  return String(entry?.paymentStatus || "").toLowerCase() === "paid" || due <= 0;
+};
+
+const findBreakdownEntry = (breakdown, { id, email, name }) => {
+  const idStr = toId(id);
+  const emailStr = String(email || "").trim().toLowerCase();
+  const nameStr = String(name || "").trim().toLowerCase();
+
+  return (breakdown || []).find((entry) => {
+    const eid = entryId(entry);
+    const eemail = entryEmail(entry);
+    const ename = entryName(entry).toLowerCase();
+    if (idStr && eid && idStr === eid) return true;
+    if (emailStr && eemail && emailStr === eemail) return true;
+    if (nameStr && ename && nameStr === ename) return true;
+    return false;
+  });
+};
+
+const buildSettlementLink = ({ providedLink, groupId }) => {
+  if (providedLink && String(providedLink).trim()) return String(providedLink).trim();
+  const rawFrontend = String(process.env.FRONTEND_URL || "http://localhost:5173");
+  const firstOrigin = rawFrontend.split(",")[0].trim().replace(/\/$/, "");
+  if (!groupId) return firstOrigin;
+  return `${firstOrigin}/group/${groupId}/settlement`;
+};
 
 /**
  * Create a nudge record and send a reminder email to the recipient.
@@ -20,6 +69,10 @@ export const createAndSendNudge = async (req, res) => {
       recipientName,
       recipientEmail,
       senderName,
+      senderEmail,
+      senderId,
+      splitId,
+      groupId,
       groupName,
       amount,
       currency,
@@ -39,6 +92,71 @@ export const createAndSendNudge = async (req, res) => {
       });
     }
 
+    // Strict permission enforcement: require splitId or groupId so we can
+    // verify settlement status of sender and recipient before creating a nudge.
+    if (!splitId && !groupId) {
+      return res.status(400).json({ message: "splitId or groupId is required to send a nudge" });
+    }
+
+    const split = splitId ? await Split.findById(splitId).lean() : null;
+    if (!split) {
+      return res.status(404).json({ message: "Split not found" });
+    }
+
+    const group = groupId
+      ? await Group.findById(groupId).select("createdBy splitId").lean()
+      : await Group.findOne({ splitId: split._id }).select("createdBy splitId").lean();
+
+    if (!group) {
+      return res.status(400).json({ message: "Group context is required to send nudge" });
+    }
+
+    if (!senderId) {
+      return res.status(400).json({ message: "senderId is required" });
+    }
+
+    const hostId = toId(group.createdBy);
+    const breakdown = Array.isArray(split.breakdown) ? split.breakdown : [];
+
+    // Rule: only the highest payer can send nudges.
+    const highestPayer = (breakdown || [])
+      .slice()
+      .sort((a, b) => Number(b?.amountPaid || 0) - Number(a?.amountPaid || 0))[0] || null;
+    const highestPayerId = highestPayer ? entryId(highestPayer) : "";
+    const highestPaidAmount = Number(highestPayer?.amountPaid || 0);
+
+    // If nobody has paid anything yet, no one can send nudge.
+    const effectiveSenderId = highestPaidAmount > 0 ? highestPayerId : "";
+
+    if (!effectiveSenderId) {
+      return res.status(200).json({ success: true, delivered: false, message: "No eligible sender yet. Highest payer can send nudges after payment is recorded." });
+    }
+
+    if (toId(senderId) !== effectiveSenderId) {
+      const allowedName = entryName(highestPayer) || (toId(effectiveSenderId) === hostId ? "host" : "highest payer");
+      return res.status(200).json({
+        success: true,
+        delivered: false,
+        message: `Only ${allowedName} (highest payer) can send nudges for this group`,
+      });
+    }
+
+    const recipientMatch = findBreakdownEntry(breakdown, {
+      email: recipientEmail,
+      name: recipientName,
+    });
+
+    if (!recipientMatch) {
+      return res.status(200).json({ success: true, delivered: false, message: "Recipient is not part of this split" });
+    }
+
+    if (isEntrySettled(recipientMatch)) {
+      return res.status(200).json({ success: true, delivered: false, message: "Recipient already settled; no nudge created" });
+    }
+
+    const { paidByName = '' } = req.body;
+    const finalPayLink = buildSettlementLink({ providedLink: payLink, groupId: group?._id || groupId });
+
     const template = createNudgeTemplate({
       recipientName,
       senderName,
@@ -46,7 +164,9 @@ export const createAndSendNudge = async (req, res) => {
       amount,
       currency,
       dueDate,
-      payLink,
+      payLink: finalPayLink,
+      paidByName,
+      anonymous: !!paidByName === false,
     });
 
     let status = "sent";
@@ -73,7 +193,8 @@ export const createAndSendNudge = async (req, res) => {
       amount,
       currency,
       dueDate,
-      payLink,
+      payLink: finalPayLink,
+      paidByName: paidByName || '',
       status,
       errorMessage,
     });
@@ -152,6 +273,7 @@ export const sendSplitSummary = async (req, res) => {
       share: b.share || 0,
       amountPaid: b.amountPaid || 0,
       balanceDue: b.balanceDue || 0,
+      paidByName: b.paidByName || '',
     }));
 
     let sent = 0;

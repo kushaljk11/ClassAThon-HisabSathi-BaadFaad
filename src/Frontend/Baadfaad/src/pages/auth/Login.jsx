@@ -9,7 +9,7 @@
  * @module pages/auth/Login
  */
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '@root-assets/Logo-01.png';
 import api from '../../config/config';
 import { API_URL, BASE_URL } from '../../config/config';
@@ -18,27 +18,134 @@ import  {AuthContext}  from '../../context/authContext';
 const Login = () => {
   const [fullName, setFullName] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  // Determine whether the visitor was redirected here from a session or group link
+  const from = location.state?.from;
+  let incomingType = null;
+  try {
+    if (from?.search) {
+      const sp = new URLSearchParams(from.search);
+      incomingType = sp.get('type');
+      // If the link contains a groupId param, treat it as a group link
+      if (!incomingType && sp.get('groupId')) incomingType = 'group';
+    }
+    // Also treat explicit group paths as group links
+    if (!incomingType && from?.pathname && from.pathname.includes('/group')) {
+      incomingType = 'group';
+    }
+  } catch (e) {}
   const { login } = useContext(AuthContext);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
 
   const handleGoogleLogin = () => {
     const trimmedName = fullName.trim();
-    if (!trimmedName) {
-      return;
+    if (trimmedName) {
+      localStorage.setItem('pendingFullName', trimmedName);
+    } else {
+      localStorage.removeItem('pendingFullName');
     }
-
-    localStorage.setItem('pendingFullName', trimmedName);
+    // Persist redirect after OAuth flow
+    if (from) {
+      try {
+        localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: from.pathname, search: from.search }));
+      } catch {}
+    }
     const backendBaseUrl = BASE_URL || API_URL?.replace(/\/api\/?$/, '') || window.location.origin;
     const googleAuthUrl = `${backendBaseUrl}/api/auth/google`;
     window.location.href = googleAuthUrl;
   };
 
-  const handleContinue = async () => {
+  const handleEmailLogin = async () => {
     try {
-      const response = await api.post('/auth/continue', { fullName });
+      if (!email.trim() || !password) return;
+      // Persist redirect after login
+      if (from) {
+        try {
+          localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: from.pathname, search: from.search }));
+        } catch {}
+      }
+      const response = await api.post('/auth/login', { email: email.trim(), password });
       const { token, user } = response.data;
       login(user, token);
-      navigate('/split/create');
+
+      // Redirect back to original location if available (or to create page)
+      const stored = localStorage.getItem('postAuthRedirect');
+      if (from) {
+        navigate(from.pathname + (from.search || ''), { replace: true });
+      } else if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          localStorage.removeItem('postAuthRedirect');
+          navigate(parsed.pathname + (parsed.search || ''), { replace: true });
+        } catch {
+          navigate('/split/create', { replace: true });
+        }
+      } else {
+        navigate('/split/create', { replace: true });
+      }
+    } catch (err) {
+      console.error('Email login failed', err);
+    }
+  };
+
+  const handleContinue = async () => {
+    try {
+      // If this is an incoming group link, disallow name-only continue
+      if (incomingType === 'group') {
+        return;
+      }
+      const storedBefore = localStorage.getItem('postAuthRedirect');
+      console.debug('Login.handleContinue: from=', from, 'postAuthRedirect=', storedBefore);
+
+      const response = await api.post('/auth/continue', { fullName });
+      console.debug('Login.handleContinue: /auth/continue response=', response.data);
+      const { token, user } = response.data;
+      login(user, token);
+
+      // If redirected from a session link, auto-join the session on behalf of the user
+      try {
+        let targetFrom = from;
+        const stored = localStorage.getItem('postAuthRedirect');
+        if (!targetFrom && stored) {
+          try { targetFrom = JSON.parse(stored); } catch {}
+        }
+        if (targetFrom?.search) {
+          const sp = new URLSearchParams(targetFrom.search);
+          const t = sp.get('type');
+          const sessionId = sp.get('sessionId');
+          const splitId = sp.get('splitId');
+          if (t === 'session' && sessionId) {
+              const uid = user._id || user.id;
+              console.debug('Login.handleContinue: attempting auto-join', { sessionId, userId: uid });
+              const joinRes = await api.post(`/session/join/${sessionId}`, { userId: uid });
+              console.debug('Login.handleContinue: /session/join response=', joinRes.data);
+              // navigate to joined room explicitly
+              navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${t}`, { replace: true });
+              return;
+            }
+        }
+      } catch (err) {
+        // ignore join errors and fall back to redirect
+        console.error('Auto-join failed:', err);
+      }
+
+      // Redirect back to original location if available
+      const stored = localStorage.getItem('postAuthRedirect');
+      if (from) {
+        navigate(from.pathname + (from.search || ''), { replace: true });
+      } else if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          localStorage.removeItem('postAuthRedirect');
+          navigate(parsed.pathname + (parsed.search || ''), { replace: true });
+        } catch {
+          navigate('/split/create', { replace: true });
+        }
+      } else {
+        navigate('/split/create', { replace: true });
+      }
     } catch (error) {
       console.error('Error continuing:', error);
     }
@@ -89,12 +196,7 @@ const Login = () => {
           {/* Google Login Button */}
           <button
             onClick={handleGoogleLogin}
-            disabled={!fullName.trim()}
-            className={`w-full text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${
-              fullName.trim()
-                ? 'bg-emerald-400 hover:bg-emerald-500'
-                : 'bg-gray-300 cursor-not-allowed'
-            }`}
+            className={`w-full text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors bg-emerald-400 hover:bg-emerald-500`}
           >
             <span className="w-6 h-6 bg-white rounded flex items-center justify-center">
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -118,10 +220,25 @@ const Login = () => {
             </span>
             Continue with Google
           </button>
-          {!fullName.trim() && (
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Enter your full name to continue with Google.
-            </p>
+          {/* Name-only continue (allowed for session links, disabled/hidden for group links) */}
+          {incomingType !== 'group' ? (
+            <div className="mt-3">
+              <button
+                onClick={handleContinue}
+                disabled={!fullName.trim()}
+                className={`w-full text-slate-700 font-medium py-3 rounded-lg border border-zinc-200 bg-white flex items-center justify-center gap-2 transition-colors ${fullName.trim() ? 'hover:bg-zinc-50' : 'opacity-60 cursor-not-allowed'}`}
+              >
+                Continue with name
+              </button>
+              {!fullName.trim() && (
+                <p className="text-xs text-gray-500 mt-2 text-center">Enter your name to continue as guest.</p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-rose-600 mb-4">This group link requires signing in with Google to verify your Gmail account.</p>
+              <button onClick={handleGoogleLogin} className="w-full rounded-full bg-emerald-400 px-6 py-3 font-bold text-white">Continue with Google</button>
+            </div>
           )}
 
           {/* Terms and Privacy */}

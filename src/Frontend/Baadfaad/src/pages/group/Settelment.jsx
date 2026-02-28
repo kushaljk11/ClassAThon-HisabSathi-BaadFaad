@@ -44,6 +44,29 @@ export default function Settlement() {
   const [group, setGroup] = useState(null);
   const [split, setSplit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editingDueIdx, setEditingDueIdx] = useState(null);
+  const [dueDrafts, setDueDrafts] = useState({});
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = storedUser?._id || storedUser?.id || "";
+
+  const highestPayerEntry = (breakdown || [])
+    .slice()
+    .sort((a, b) => Number(b?.amountPaid || 0) - Number(a?.amountPaid || 0))[0] || null;
+  const highestPayerId =
+    highestPayerEntry?.user?._id ||
+    highestPayerEntry?.user ||
+    highestPayerEntry?.participant?._id ||
+    highestPayerEntry?.participant ||
+    highestPayerEntry?._id ||
+    "";
+  const highestPayerPaid = Number(highestPayerEntry?.amountPaid || 0);
+  const canEditDue = highestPayerPaid > 0 && String(currentUserId) === String(highestPayerId);
+  const highestPayerName =
+    highestPayerEntry?.name ||
+    highestPayerEntry?.user?.name ||
+    highestPayerEntry?.participant?.name ||
+    "Highest payer";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,10 +93,12 @@ export default function Settlement() {
   const breakdown = split?.breakdown || [];
   const totalExpense = split?.totalAmount || 0;
   const totalCollected = breakdown.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
-  const remaining = Math.max(0, totalExpense - totalCollected);
-  const collectPct = totalExpense > 0 ? Math.round((totalCollected / totalExpense) * 100) : 0;
+  // Remaining should reflect the sum of outstanding positive dues (never negative)
+  const remaining = breakdown.reduce((sum, b) => sum + Math.max(0, (b.amount || 0) - (b.amountPaid || 0)), 0);
+  const collectPct = totalExpense > 0 ? Math.round(((totalExpense - remaining) / totalExpense) * 100) : 0;
 
-  const participants = breakdown.map((b) => ({
+  const participants = breakdown.map((b, index) => ({
+    index,
     name: b.name || b.user?.name || b.participant?.name || "Participant",
     email: b.email || b.user?.email || "",
     share: b.amount || 0,
@@ -81,6 +106,50 @@ export default function Settlement() {
     due: Math.max(0, (b.amount || 0) - (b.amountPaid || 0)),
     status: b.paymentStatus || "unpaid",
   }));
+
+  useEffect(() => {
+    const drafts = {};
+    participants.forEach((person) => {
+      drafts[person.index] = Number(person.due || 0);
+    });
+    setDueDrafts(drafts);
+  }, [split]);
+
+  const updateDueDraft = (idx, value) => {
+    setDueDrafts((prev) => ({ ...prev, [idx]: value }));
+  };
+
+  const saveDueDraft = async (person) => {
+    if (!canEditDue || !split?._id) return;
+
+    const raw = Number(dueDrafts[person.index] ?? person.due ?? 0);
+    const clampedDue = Math.max(0, Math.min(Number(person.share || 0), Number.isFinite(raw) ? raw : 0));
+    const nextPaid = Math.max(0, Number(person.share || 0) - clampedDue);
+
+    setEditingDueIdx(person.index);
+    try {
+      const res = await api.put(`/splits/${split._id}/participant/${person.index}`, {
+        amountPaid: nextPaid,
+        editorId: currentUserId,
+        enforceHighestPayer: true,
+      });
+
+      const updated = res.data?.split || res.data?.data?.split || null;
+      if (updated) {
+        setSplit(updated);
+      } else {
+        const splitRes = await api.get(`/splits/${split._id}`);
+        setSplit(splitRes.data?.split || splitRes.data);
+      }
+
+      updateDueDraft(person.index, clampedDue);
+      toast.success("Due updated");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update due");
+    } finally {
+      setEditingDueIdx(null);
+    }
+  };
 
   const handleContinueToNudge = () => {
     navigate(`/group/${groupId}/nudge`);
@@ -150,6 +219,12 @@ export default function Settlement() {
               </button>
             </div>
           </div>
+
+          <p className="mb-4 text-xs text-slate-500">
+            {highestPayerPaid > 0
+              ? `Only ${highestPayerName} (highest payer) can edit balance due.`
+              : "No one can edit balance due until someone has paid an amount."}
+          </p>
 
           {/* Summary cards */}
           <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -233,13 +308,41 @@ export default function Settlement() {
                     <p className="text-sm font-semibold text-slate-700">
                       {formatMoney(person.paid)}
                     </p>
-                    <p
-                      className={`text-sm font-bold ${
-                        person.due > 0 ? "text-orange-500" : "text-emerald-500"
-                      }`}
-                    >
-                      {person.due > 0 ? formatMoney(person.due) : "Rs. 0.00"}
-                    </p>
+                    {canEditDue ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max={Number(person.share || 0)}
+                          step="0.01"
+                          value={dueDrafts[person.index] ?? person.due}
+                          onChange={(e) => updateDueDraft(person.index, Number(e.target.value || 0))}
+                          onBlur={() => saveDueDraft(person)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          disabled={editingDueIdx === person.index}
+                          className="w-28 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-700"
+                        />
+                        <span
+                          className={`text-sm font-bold ${
+                            person.due > 0 ? "text-orange-500" : "text-emerald-500"
+                          }`}
+                        >
+                          {person.due > 0 ? formatMoney(person.due) : "Rs. 0.00"}
+                        </span>
+                      </div>
+                    ) : (
+                      <p
+                        className={`text-sm font-bold ${
+                          person.due > 0 ? "text-orange-500" : "text-emerald-500"
+                        }`}
+                      >
+                        {person.due > 0 ? formatMoney(person.due) : "Rs. 0.00"}
+                      </p>
+                    )}
 
                     <div className="flex flex-wrap items-center gap-2">
                       {person.status === "paid" ? (

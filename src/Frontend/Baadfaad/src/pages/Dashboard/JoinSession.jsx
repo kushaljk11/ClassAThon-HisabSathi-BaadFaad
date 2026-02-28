@@ -37,8 +37,12 @@ export default function JoinSession() {
         return;
       }
 
-      // Navigate to join page
-      navigate(`/split/join?splitId=${splitId}&sessionId=${sessionId}&type=${type}`);
+      // Navigate to appropriate join path: group links require group join
+      if (url.searchParams.get('groupId') || type === 'group') {
+        navigate(`/group/join?groupId=${url.searchParams.get('groupId') || ''}&splitId=${splitId}`);
+      } else {
+        navigate(`/session/join?splitId=${splitId}&sessionId=${sessionId}`);
+      }
     } catch (err) {
       toast.error("Invalid link format. Please paste a valid session link.");
     }
@@ -72,7 +76,7 @@ export default function JoinSession() {
                   id="sessionLink"
                   value={sessionLink}
                   onChange={(e) => setSessionLink(e.target.value)}
-                  placeholder="https://example.com/split/join?splitId=..."
+                  placeholder="https://example.com/session/join?splitId=... or https://example.com/group/join?groupId=..."
                   className="w-full rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 text-base text-slate-900 placeholder-slate-400 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 />
               </div>

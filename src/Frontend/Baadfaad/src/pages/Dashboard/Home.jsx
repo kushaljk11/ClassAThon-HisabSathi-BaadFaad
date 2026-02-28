@@ -48,6 +48,7 @@ export default function Home() {
 
         // --- Recent Splits (top 5) ---
         const mapped = splits.slice(0, 5).map((s, i) => ({
+          id: s._id || s.id || `split-${i}-${(s.name||s.sessionName||s.notes||'').replace(/\s+/g,'-')}`,
           title: s.name || s.sessionName || s.notes || s.receipt?.restaurant || `Split #${i + 1}`,
           date: new Date(s.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short" }),
           members: `${s.breakdown?.length || 0} participants`,
@@ -227,8 +228,8 @@ export default function Home() {
                 const Icon = split.icon;
 
                 return (
-                  <article
-                    key={split.title}
+                    <article
+                      key={split.id}
                     className="flex items-start justify-between gap-3"
                   >
                     <div className="flex items-start gap-3">

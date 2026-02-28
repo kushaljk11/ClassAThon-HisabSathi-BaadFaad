@@ -60,6 +60,8 @@ function AppContent() {
         <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/join-session" element={<ProtectedRoute><JoinSession /></ProtectedRoute>} />
         <Route path="/split/join" element={<ProtectedRoute><JoinSplit /></ProtectedRoute>} />
+        <Route path="/group/join" element={<ProtectedRoute><JoinSplit /></ProtectedRoute>} />
+        <Route path="/session/join" element={<ProtectedRoute><JoinSplit /></ProtectedRoute>} />
         <Route path="/split/create" element={<ProtectedRoute><CreateSplit /></ProtectedRoute>} />
         <Route path="/split/scan" element={<ProtectedRoute><ScanBill /></ProtectedRoute>} />
         <Route path="/split/ready" element={<ProtectedRoute><ReadyToSplit /></ProtectedRoute>} />

@@ -15,10 +15,21 @@ let io = null;
  * Initialize Socket.IO with the HTTP server
  */
 export const initSocket = (httpServer) => {
+  const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app,http://localhost:5173,http://localhost:5174';
+  const allowedOrigins = rawFrontend
+    .split(',')
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || "https://baadfaad.vercel.app/",
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(null, false);
+      },
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 

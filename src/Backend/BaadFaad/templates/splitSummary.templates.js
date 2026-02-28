@@ -23,13 +23,18 @@ const BRAND_COLORS = {
 function buildParticipantRows(participants) {
 	return participants
 		.map(
-			(p) => `
+			(p) => {
+				const due = Number(p.balanceDue || 0);
+				const payTo = due <= 0 ? "None" : (p.paidByName ? `To be paid to ${p.paidByName}` : "None");
+				return `
 		<tr>
 			<td style="padding:8px 12px;border-bottom:1px solid ${BRAND_COLORS.border};font-size:14px;">${p.name}</td>
 			<td style="padding:8px 12px;border-bottom:1px solid ${BRAND_COLORS.border};font-size:14px;text-align:right;">NPR ${Number(p.share).toLocaleString()}</td>
 			<td style="padding:8px 12px;border-bottom:1px solid ${BRAND_COLORS.border};font-size:14px;text-align:right;color:${BRAND_COLORS.primaryDark};">NPR ${Number(p.amountPaid).toLocaleString()}</td>
 			<td style="padding:8px 12px;border-bottom:1px solid ${BRAND_COLORS.border};font-size:14px;text-align:right;color:${p.balanceDue > 0 ? "#ef4444" : BRAND_COLORS.primaryDark};">${p.balanceDue > 0 ? "NPR " + Number(p.balanceDue).toLocaleString() : "Settled"}</td>
-		</tr>`
+			<td style="padding:8px 12px;border-bottom:1px solid ${BRAND_COLORS.border};font-size:14px;text-align:right;color:${BRAND_COLORS.textMuted};">${payTo}</td>
+		</tr>`;
+			}
 		)
 		.join("");
 }
@@ -40,8 +45,11 @@ function buildParticipantRows(participants) {
 function buildParticipantText(participants) {
 	return participants
 		.map(
-			(p) =>
-				`  • ${p.name}: Share NPR ${p.share} | Paid NPR ${p.amountPaid} | Due NPR ${p.balanceDue}`
+			(p) => {
+				const due = Number(p.balanceDue || 0);
+				const payTo = due <= 0 ? " | Pay to: None" : (p.paidByName ? ` | Pay to: ${p.paidByName}` : " | Pay to: None");
+				return `  • ${p.name}: Share NPR ${p.share} | Paid NPR ${p.amountPaid} | Due NPR ${p.balanceDue}${payTo}`;
+			}
 		)
 		.join("\n");
 }
@@ -136,6 +144,7 @@ Thanks for using BaadFaad!`;
 							<th style="padding:10px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:${BRAND_COLORS.textMuted};letter-spacing:0.5px;">Share</th>
 							<th style="padding:10px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:${BRAND_COLORS.textMuted};letter-spacing:0.5px;">Paid</th>
 							<th style="padding:10px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:${BRAND_COLORS.textMuted};letter-spacing:0.5px;">Due</th>
+							<th style="padding:10px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:${BRAND_COLORS.textMuted};letter-spacing:0.5px;">Pay To</th>
 						</tr>
 						${buildParticipantRows(participants)}
 					</table>

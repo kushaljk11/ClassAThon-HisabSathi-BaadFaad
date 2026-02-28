@@ -9,8 +9,8 @@
  *
  * @module pages/group/Nudge
  */
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import TopBar from "../../components/layout/Dashboard/TopBar";
 import api from "../../config/config";
@@ -19,13 +19,38 @@ import {FaSpinner, FaCheckCircle, FaPaperPlane, FaUserSecret, FaUserCircle, FaRe
 
 export default function Nudge() {
   const { groupId } = useParams();
-  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [group, setGroup] = useState(null);
   const [splitData, setSplitData] = useState(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [sendingId, setSendingId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = storedUser?._id || storedUser?.id || "";
+
+  const highestPayerEntry = useMemo(() => {
+    const rows = splitData?.breakdown || [];
+    if (!rows.length) return null;
+    return rows
+      .slice()
+      .sort((a, b) => Number(b?.amountPaid || 0) - Number(a?.amountPaid || 0))[0] || null;
+  }, [splitData]);
+
+  const highestPayerId =
+    highestPayerEntry?.user?._id ||
+    highestPayerEntry?.user ||
+    highestPayerEntry?.participant?._id ||
+    highestPayerEntry?.participant ||
+    highestPayerEntry?._id ||
+    "";
+
+  const highestPayerPaid = Number(highestPayerEntry?.amountPaid || 0);
+  const effectiveNudgerId = highestPayerPaid > 0 ? String(highestPayerId || "") : "";
+
+  const canCurrentUserNudge = !!effectiveNudgerId && String(currentUserId) === String(effectiveNudgerId);
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +83,7 @@ export default function Nudge() {
                 share,
                 paid,
                 due,
+                paidByName: b.paidByName || '',
                 status: isSettled ? "Fully Settled" : "Pending Payment",
                 amount: `Rs. ${due.toLocaleString()}`,
                 pending: !isSettled,
@@ -103,6 +129,22 @@ export default function Nudge() {
   const handleSendNudge = async (member) => {
     if (!member.email || member.action === "Settled" || member.action === "Nudge Sent") return;
 
+    if (!canCurrentUserNudge) {
+      // Anonymous UX: appear to process without revealing permission details.
+      setSendingId(member._id);
+      await wait(900);
+      setMembers((prev) =>
+        prev.map((m) =>
+          m._id === member._id
+            ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
+            : m
+        )
+      );
+      toast.success(`Nudge sent to ${member.name}!`);
+      setSendingId(null);
+      return true;
+    }
+
     const nudgeAmount = member.due || member.share || 0;
     if (nudgeAmount <= 0) {
       toast.error(`${member.name} has no pending balance to nudge about`);
@@ -113,6 +155,8 @@ export default function Nudge() {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const hostName = userData.name || userData.fullName || "Your friend";
+      const senderEmail = userData.email || userData.emails?.[0] || '';
+      const senderId = userData._id || userData.id || '';
 
       const response = await api.post(
         "/nudge/send",
@@ -120,9 +164,15 @@ export default function Nudge() {
           recipientName: member.name,
           recipientEmail: member.email,
           senderName: hostName,
+          senderEmail,
+          senderId,
+          splitId: splitData?._id || null,
+          groupId: group?._id || null,
           groupName: group?.name || "Split Group",
           amount: nudgeAmount,
           currency: group?.defaultCurrency || "NPR",
+          payLink: `${window.location.origin}/group/${group?._id || groupId}/settlement`,
+          paidByName: member.paidByName || '',
         },
         {
           timeout: 30000,
@@ -131,8 +181,16 @@ export default function Nudge() {
 
       const delivered = response?.data?.delivered !== false;
       if (!delivered) {
-        toast.error(response?.data?.message || `Nudge could not be delivered to ${member.name}`);
-        return false;
+        // Keep sender anonymity by not surfacing policy-specific denial reasons.
+        setMembers((prev) =>
+          prev.map((m) =>
+            m._id === member._id
+              ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
+              : m
+          )
+        );
+        toast.success(`Nudge sent to ${member.name}!`);
+        return true;
       }
 
       // Update local state
@@ -166,6 +224,25 @@ export default function Nudge() {
       setSendingAll(false);
       return;
     }
+
+    if (!canCurrentUserNudge) {
+      for (const member of pending) {
+        setSendingId(member._id);
+        await wait(450);
+        setMembers((prev) =>
+          prev.map((m) =>
+            m._id === member._id
+              ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
+              : m
+          )
+        );
+      }
+      setSendingId(null);
+      toast.success(`Nudged ${pending.length} pending member${pending.length > 1 ? "s" : ""}!`);
+      setSendingAll(false);
+      return;
+    }
+
     let deliveredCount = 0;
     let failedCount = 0;
     for (const member of pending) {
@@ -270,21 +347,24 @@ export default function Nudge() {
         <section className="mt-8">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-slate-900">Settlement Status</h2>
-            <button
-              type="button"
-              onClick={handleNudgeAll}
-              disabled={sendingAll}
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2 text-sm font-bold text-slate-900 disabled:opacity-50"
-            >
-              {sendingAll ? <FaSpinner className="animate-spin text-xs" /> : <FaPaperPlane className="text-xs" />}
-              Nudge All Pending
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={handleNudgeAll}
+                disabled={sendingAll}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2 text-sm font-bold text-slate-900 disabled:opacity-50"
+              >
+                {sendingAll ? <FaSpinner className="animate-spin text-xs" /> : <FaPaperPlane className="text-xs" />}
+                Nudge All Pending
+              </button>
+              <p className="text-xs text-slate-500">Nudges are sent anonymously by the system</p>
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
-            {members.map((member) => (
+            {members.map((member, idx) => (
               <article
-                key={member.name}
+                key={`${member._id || "member"}-${member.email || member.name || idx}-${idx}`}
                 className="rounded-[1.8rem] border border-emerald-100 bg-white px-5 py-4"
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

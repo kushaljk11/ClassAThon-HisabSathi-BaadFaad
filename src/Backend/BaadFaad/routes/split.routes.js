@@ -24,6 +24,7 @@ import {
   updateSplit,
   updateParticipantPayment,
   finalizeSplit,
+  ensureSplitHasGroupMembers,
   deleteSplit,
 } from '../controllers/split.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
@@ -35,6 +36,7 @@ router.get('/', protect, getAllSplits);
 router.get('/:id', getSplitById);
 router.put('/:id', updateSplit);
 router.put('/:id/participant/:participantIndex', updateParticipantPayment);
+router.post('/:id/ensure-members', ensureSplitHasGroupMembers);
 router.post('/:id/finalize', protect, finalizeSplit);
 router.delete('/:id', protect, deleteSplit);
 

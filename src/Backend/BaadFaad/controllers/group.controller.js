@@ -6,8 +6,13 @@
 import mongoose from 'mongoose';
 import QRCode from 'qrcode';
 import Group from '../models/group.model.js';
+import Split from '../models/split.model.js';
+import { getIO } from '../config/socket.js';
 
-const QR_BASE_URL = process.env.QR_BASE_URL || 'https://myapp.com';
+const QR_BASE_URL =
+  process.env.QR_BASE_URL ||
+  (process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',')[0].trim() : '') ||
+  'https://baadfaad.vercel.app';
 
 // Predefined set of group cover images
 const GROUP_COVER_IMAGES = [
@@ -126,8 +131,8 @@ export const createGroup = async (req, res) => {
       sessionId: sessionId || null,
     });
 
-    // Generate QR code with group ID
-    const joinUrl = `${QR_BASE_URL}/join-group/${group._id}`;
+    // Generate QR code with explicit group join path
+    const joinUrl = `${QR_BASE_URL}/group/join?groupId=${group._id}&splitId=${group.splitId || ''}`;
     const qrCodeBase64 = await generateQRCode(joinUrl);
 
     // Update group with QR code
@@ -203,6 +208,34 @@ export const getGroupById = async (req, res) => {
       success: true,
       data: group,
     });
+  } catch (error) {
+    const formattedError = formatMongooseError(error);
+    return sendError(res, formattedError.statusCode, formattedError.message);
+  }
+};
+
+/**
+ * Get a group by its associated splitId.
+ * GET /api/groups/by-split/:splitId
+ */
+export const getGroupBySplitId = async (req, res) => {
+  try {
+    const { splitId } = req.params;
+
+    if (!isValidObjectId(splitId)) {
+      return sendError(res, 400, 'Invalid splitId');
+    }
+
+    const group = await Group.findOne({ splitId })
+      .populate('createdBy', 'fullName email avatarUrl')
+      .populate('members', 'fullName email avatarUrl')
+      .lean();
+
+    if (!group) {
+      return sendError(res, 404, 'Group not found for this split');
+    }
+
+    return res.status(200).json({ success: true, data: group });
   } catch (error) {
     const formattedError = formatMongooseError(error);
     return sendError(res, formattedError.statusCode, formattedError.message);
@@ -306,6 +339,60 @@ export const joinGroup = async (req, res) => {
 
     await group.populate('createdBy', 'fullName email avatarUrl');
     await group.populate('members', 'fullName email avatarUrl');
+
+    // Emit a socket event so clients in the group's room see live joins
+    try {
+      const io = getIO();
+      const newMember = group.members.find((m) => String(m._id) === String(memberIdToAdd));
+      io.to(String(group._id)).emit('participant-joined', {
+        participants: group.members,
+        newParticipant: newMember || { _id: memberIdToAdd, name, email },
+      });
+    } catch (e) {
+      // Non-fatal: if socket isn't initialized, continue silently
+      console.warn('Socket emit for group join failed:', e && e.message);
+    }
+
+    // If this group is associated to a split, attempt to recalculate the split breakdown
+    try {
+      if (group.splitId) {
+        const split = await Split.findById(group.splitId);
+        if (split) {
+          const membersPop = await Group.findById(group._id).populate('members', 'name fullName email');
+          const members = membersPop.members || [];
+          if (members.length > 0 && (split.totalAmount || split.totalAmount === 0)) {
+            const total = split.totalAmount || 0;
+            const count = members.length;
+            const perPerson = Math.round((total / count) * 100) / 100;
+
+            split.breakdown = members.map((m) => ({
+              user: m._id,
+              name: m.fullName || m.name || m.email || 'Participant',
+              email: m.email || '',
+              amount: perPerson,
+              amountPaid: 0,
+              paymentStatus: 'unpaid',
+              percentage: Math.round((100 / count) * 100) / 100,
+              items: [],
+            }));
+
+            split.status = 'calculated';
+            split.calculatedAt = new Date();
+            await split.save();
+
+            // Notify room that split was updated (optional)
+            try {
+              const io = getIO();
+              io.to(String(group._id)).emit('split-updated', { splitId: split._id });
+            } catch (e) {
+              // ignore socket errors
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Auto-recalc split on group join failed:', e && e.message);
+    }
 
     return res.status(200).json({
       success: true,

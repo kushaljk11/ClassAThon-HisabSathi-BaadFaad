@@ -48,6 +48,11 @@ const nudgeSchema = new mongoose.Schema(
       default: "#",
       trim: true,
     },
+    paidByName: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     status: {
       type: String,
       enum: ["sent", "failed", "pending"],

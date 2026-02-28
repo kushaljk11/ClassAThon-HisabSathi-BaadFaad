@@ -13,12 +13,20 @@ import axios from "axios";
 
 const envApiUrl = import.meta.env.VITE_API_URL;
 const envBaseUrl = import.meta.env.VITE_BASE_URL;
+const DEPLOYED_BACKEND_BASE = "https://classathon-hisabsathi-baadfaad.onrender.com";
+
+const runtimeDefaultBase =
+  typeof window !== "undefined" && /localhost|127\.0\.0\.1/i.test(window.location.hostname)
+    ? "http://localhost:5000"
+    : DEPLOYED_BACKEND_BASE;
 
 export const BASE_URL =
-  envBaseUrl?.replace(/\/+$/, "") || envApiUrl?.replace(/\/api\/?$/, "") || "";
+  envBaseUrl?.replace(/\/+$/, "") ||
+  envApiUrl?.replace(/\/api\/?$/, "") ||
+  runtimeDefaultBase;
 
 export const API_URL =
-  envApiUrl || (BASE_URL ? `${BASE_URL}/api` : "/api");
+  envApiUrl || `${BASE_URL}/api`;
 
 const api = axios.create({
   baseURL: API_URL,

@@ -9,7 +9,7 @@
  * @module pages/split/JoinSplit
  */
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import TopBar from "../../components/layout/Dashboard/TopBar";
 import { FaSpinner, FaUsers, FaCheckCircle } from "react-icons/fa";
@@ -22,12 +22,16 @@ export default function JoinSplit() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [detectedType, setDetectedType] = useState(null);
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
+  const groupId = searchParams.get("groupId");
   const type = searchParams.get("type");
+  const pathname = location.pathname || '';
 
   useEffect(() => {
     // Auto-join if user is logged in and has sessionId
@@ -36,15 +40,51 @@ export default function JoinSplit() {
     }
   }, [currentUserId, sessionId]);
 
+  // If link doesn't include explicit type, detect whether the splitId belongs to a group
+  useEffect(() => {
+    const detect = async () => {
+      if (type || !splitId) return;
+      try {
+        const res = await api.get(`/groups/by-split/${splitId}`);
+        if (res?.data?.success) {
+          setDetectedType('group');
+        } else {
+          setDetectedType('session');
+        }
+      } catch (err) {
+        // 404 -> not a group, treat as session. Other errors -> default to session.
+        setDetectedType('session');
+      }
+    };
+    detect();
+  }, [type, splitId]);
+
+  // Guest fields for unauthenticated session joins
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+
   const handleJoin = async () => {
-    if (!sessionId) {
-      toast.error("Invalid session link");
-      return;
+    const effectiveTypeLocal = (pathname.includes('/group') ? 'group' : (pathname.includes('/session') ? 'session' : (type || detectedType || 'session')));
+
+    // Validate depending on link type
+    if (effectiveTypeLocal === 'group') {
+      if (!groupId) {
+        toast.error('Invalid group link');
+        return;
+      }
+    } else {
+      if (!sessionId) {
+        toast.error('Invalid session link');
+        return;
+      }
     }
 
     if (!currentUserId) {
       toast.error("You must be logged in to join a session");
-      navigate("/login");
+      try {
+        localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search }));
+      } catch (e) {}
+      navigate("/login", { state: { from: location } });
       return;
     }
 
@@ -54,13 +94,21 @@ export default function JoinSplit() {
     try {
       const payload = { userId: currentUserId };
 
-      await api.post(`/session/join/${sessionId}`, payload);
-
-      toast.dismiss(toastId);
-      toast.success("Joined successfully!");
-
-      // Navigate to the lobby
-      navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type || 'session'}`);
+      if (effectiveTypeLocal === 'group') {
+        if (!groupId) {
+          throw new Error('Invalid group link');
+        }
+        await api.post(`/groups/${groupId}/join`, payload);
+        toast.dismiss(toastId);
+        toast.success('Joined group successfully!');
+        navigate(`/split/joined?splitId=${splitId}&groupId=${groupId}&type=group`);
+      } else {
+        await api.post(`/session/join/${sessionId}`, payload);
+        toast.dismiss(toastId);
+        toast.success("Joined successfully!");
+        // Navigate to the lobby
+        navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type || 'session'}`);
+      }
     } catch (err) {
       console.error("Failed to join session:", err);
       toast.dismiss(toastId);
@@ -85,7 +133,54 @@ export default function JoinSplit() {
     );
   }
 
+  // Prefer explicit pathname segments (/group or /session), then query `type`, then detection
+  const effectiveType = (pathname.includes('/group') ? 'group' : (pathname.includes('/session') ? 'session' : (type || detectedType || 'session')));
+
   if (!user) {
+    // If this is a public session link, allow guest join via name
+    if (effectiveType === 'session') {
+      return (
+        <div className="flex min-h-screen bg-zinc-50">
+          <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+          <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+          <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12">
+            <div className="mx-auto max-w-md">
+              <div className="mb-6 text-center">
+                <h1 className="text-3xl font-bold text-slate-900">Join Split Session</h1>
+                <p className="mt-2 text-base text-slate-500">Enter your name to join as a guest</p>
+              </div>
+
+              <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Your name</label>
+                  <input value={guestName} onChange={(e) => setGuestName(e.target.value)} className="w-full rounded-md border px-3 py-2" placeholder="e.g. Alex" />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Email (optional)</label>
+                  <input value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} className="w-full rounded-md border px-3 py-2" placeholder="name@example.com" />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={async () => {
+                    if (!guestName.trim()) return toast.error('Please enter your name');
+                    setJoining(true);
+                    const tId = toast.loading('Joining as guest...');
+                    try {
+                      await api.post(`/session/join/${sessionId}`, { name: guestName.trim(), email: guestEmail.trim() });
+                      toast.dismiss(tId); toast.success('Joined successfully');
+                      navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type || 'session'}`);
+                    } catch (err) {
+                      toast.dismiss(tId); toast.error(err.response?.data?.message || 'Failed to join');
+                    } finally { setJoining(false); }
+                  }} className="rounded-full bg-emerald-400 px-6 py-3 font-bold text-white">Join as guest</button>
+                  <button onClick={() => { try { localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search })); } catch(e){}; navigate('/login', { state: { from: location } }) }} className="rounded-full border px-6 py-3">Login</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen bg-zinc-50">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
@@ -94,7 +189,7 @@ export default function JoinSplit() {
           <div className="text-center">
             <p className="text-xl font-semibold text-slate-700 mb-4">You must be logged in to join a session</p>
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate('/login', { state: { from: location } })}
               className="rounded-full bg-emerald-400 px-6 py-3 font-bold text-white hover:bg-emerald-500"
             >
               Go to Login
@@ -146,12 +241,12 @@ export default function JoinSplit() {
               {joining ? (
                 <>
                   <FaSpinner className="animate-spin" />
-                  Joining...
+                  {"Joining..."}
                 </>
               ) : (
                 <>
                   <FaCheckCircle />
-                  Join Session
+                  {effectiveType === 'group' ? 'Join Group' : 'Join Session'}
                 </>
               )}
             </button>

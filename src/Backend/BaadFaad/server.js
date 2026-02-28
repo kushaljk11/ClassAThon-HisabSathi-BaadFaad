@@ -67,13 +67,26 @@ const httpServer = createServer(app);
 // Initialize Socket.IO
 initSocket(httpServer);
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://baadfaad.vercel.app"
-  ],
-  credentials: true
-}));
+// Configure CORS for the frontend. Default to local development hosts.
+// `FRONTEND_URL` may be a single origin or a comma-separated list of origins.
+// For development we include both common Vite ports (5173 and 5174).
+const rawFrontend = process.env.FRONTEND_URL || 'https://baadfaad.vercel.app,http://localhost:5173,http://localhost:5174';
+const ALLOWED_ORIGINS = rawFrontend.split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean);
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true
+  }));
+} else {
+  // In development allow the requesting origin (reflect) so Vite on any port works.
+  app.use(cors({ origin: true, credentials: true }));
+  // Global CORS middleware above will handle preflight OPTIONS requests in development.
+}
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
@@ -95,5 +108,9 @@ app.get('/', (req, res) => {
 });
 
 httpServer.listen(PORT, '0.0.0.0', () => {
+  const frontend = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const googleCallback = process.env.GOOGLE_CALLBACK_URL || 'not-set';
   console.log(`Server running on port ${PORT}`);
+  console.log(`Frontend origin: ${frontend}`);
+  console.log(`Google callback URL: ${googleCallback}`);
 });

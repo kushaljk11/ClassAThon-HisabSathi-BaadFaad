@@ -21,6 +21,7 @@ import {
   createGroup,
   deactivateGroup,
   getGroupById,
+  getGroupBySplitId,
   getGroups,
   joinGroup,
   removeMember,
@@ -31,6 +32,7 @@ const router = express.Router();
 
 router.post('/', createGroup);
 router.get('/', getGroups);
+router.get('/by-split/:splitId', getGroupBySplitId);
 router.get('/:groupId', getGroupById);
 router.patch('/:groupId', updateGroup);
 router.post('/:groupId/join', joinGroup); // Public endpoint for QR code scanning

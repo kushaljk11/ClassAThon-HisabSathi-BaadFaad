@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from '../../context/authContext';
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import TopBar from "../../components/layout/Dashboard/TopBar";
 import { FaArrowRight, FaCopy, FaQrcode, FaSpinner } from "react-icons/fa";
@@ -21,12 +22,14 @@ export default function ReadyToSplit() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [session, setSession] = useState(null);
+  const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
   const type = searchParams.get("type");
   const groupId = searchParams.get("groupId");
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -38,6 +41,17 @@ export default function ReadyToSplit() {
       try {
         const response = await api.get(`/session/${sessionId}`);
         setSession(response.data);
+
+        if ((groupId || type === 'group') && groupId) {
+          try {
+            const groupRes = await api.get(`/groups/${groupId}`);
+            const groupData = groupRes.data?.data || groupRes.data;
+            setGroup(groupData);
+          } catch (groupErr) {
+            // Non-fatal: fallback to session QR if group fetch fails.
+            console.warn("Failed to fetch group QR:", groupErr);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch session:", err);
       } finally {
@@ -49,24 +63,50 @@ export default function ReadyToSplit() {
   }, [sessionId]);
 
   const handleParticipantJoined = useCallback((data) => {
-    if (data.session) {
-      setSession(data.session);
+    // Socket payload contains `participants` (flattened) and `newParticipant`.
+    // Prefer updating participants in-place to avoid a full refetch.
+    if (data?.participants) {
+      setSession((prev) => ({ ...(prev || {}), participants: data.participants }));
+      return;
     }
-  }, []);
+
+    // Fallback: if server sent a whole session object, replace it.
+    if (data?.session) {
+      setSession(data.session);
+      return;
+    }
+  }, [setSession]);
+
   useSessionSocket(sessionId, handleParticipantJoined);
 
   const splitName = session?.name || "Split Session";
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/split/join?splitId=${splitId}&sessionId=${sessionId}`;
+    const link = (groupId || type === 'group')
+      ? `${window.location.origin}/group/join?groupId=${groupId || ''}&splitId=${splitId}`
+      : `${window.location.origin}/session/join?splitId=${splitId}&sessionId=${sessionId}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleGoToLobby = () => {
-    navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`);
+    // If the visitor is not authenticated and this is a public session link,
+    // send them to the public join page where they can join as guest by name.
+    if (!isAuthenticated && (type === 'session' || !type && !groupId)) {
+      // go to public session join
+      navigate(`/session/join?splitId=${splitId}&sessionId=${sessionId}`);
+      return;
+    }
+
+    // Authenticated host/participant: navigate to lobby
+    navigate(`/split/joined?splitId=${splitId}&sessionId=${sessionId}&type=${type || (groupId ? 'group' : 'session')}${groupId ? `&groupId=${groupId}` : ''}`);
   };
+
+  const qrCodeImage =
+    (groupId || type === 'group')
+      ? group?.qrCode || session?.qrCode
+      : session?.qrCode;
 
   if (loading) {
     return (
@@ -112,9 +152,9 @@ export default function ReadyToSplit() {
               
               <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50 p-6">
                 <div className="rounded-xl bg-white p-4 shadow-md">
-                  {session?.qrCode ? (
+                  {qrCodeImage ? (
                     <img 
-                      src={session.qrCode} 
+                      src={qrCodeImage} 
                       alt="Session QR Code" 
                       className="mx-auto h-36 w-36 rounded-lg"
                     />

@@ -17,6 +17,7 @@
  */
 import { useEffect } from "react";
 import socket from "../config/socket";
+import toast from 'react-hot-toast';
 
 /**
  * Hook to subscribe to real-time session updates via Socket.IO.
@@ -51,11 +52,41 @@ export default function useSessionSocket(sessionId, onParticipantJoined, onHostN
     };
     socket.on("items-update", itemsHandler);
 
+    // Rejoin room automatically when connection is (re)established
+    const onConnect = () => {
+      try {
+        socket.emit("join-session-room", sessionId);
+        console.debug("socket connected/reconnected and rejoined room", sessionId);
+        toast.dismiss('socket-reconnect');
+        // brief success toast
+        toast.success('Reconnected to session', { duration: 1500 });
+      } catch (e) {
+        console.debug('Failed to rejoin session on connect', e);
+      }
+    };
+    socket.on('connect', onConnect);
+
+    const onReconnectAttempt = (attempt) => {
+      // show a persistent reconnecting indicator while attempts continue
+      toast.loading('Reconnecting...', { id: 'socket-reconnect' });
+      console.debug('socket reconnect attempt', attempt);
+    };
+    socket.on('reconnect_attempt', onReconnectAttempt);
+
+    const onDisconnect = (reason) => {
+      console.debug('socket disconnected', reason);
+      toast.error('Disconnected from session — trying to reconnect', { duration: 3000 });
+    };
+    socket.on('disconnect', onDisconnect);
+
     return () => {
       socket.off("participant-joined", joinHandler);
       socket.off("host-navigate", navHandler);
       socket.off("items-update", itemsHandler);
       socket.emit("leave-session-room", sessionId);
+      socket.off('connect', onConnect);
+      socket.off('reconnect_attempt', onReconnectAttempt);
+      socket.off('disconnect', onDisconnect);
     };
   }, [sessionId, onParticipantJoined, onHostNavigate, onItemsUpdate]);
 }

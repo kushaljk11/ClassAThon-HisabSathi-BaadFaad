@@ -106,6 +106,8 @@ export default defineConfig({
         ],
         // Ensure SPA routing works offline — navigations fall back to index.html
         navigateFallback: '/index.html',
+        // Allow SPA navigations for split routes (session links, QR deep links)
+        navigateFallbackAllowlist: [/^\/split/],
         navigateFallbackDenylist: [/^\/api/],
       },
       devOptions: {

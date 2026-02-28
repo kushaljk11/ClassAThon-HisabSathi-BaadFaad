@@ -45,11 +45,26 @@ const splitSchema = new mongoose.Schema(
           type: Number,
           default: 0,
         },
+        paidByName: {
+          type: String,
+          default: '',
+        },
+        paidById: {
+          type: String,
+          default: '',
+        },
+        paidForId: {
+          type: String,
+          default: '',
+        },
         paymentStatus: {
           type: String,
           enum: ['unpaid', 'partial', 'paid'],
           default: 'unpaid',
         },
+        // NOTE: `amountPaid` is no longer a source-of-truth. Payments are
+        // stored at the split level as `payments` with allocations. We keep
+        // compatibility by computing `amountPaid` dynamically in controllers.
         name: {
           type: String,
         },
@@ -87,6 +102,33 @@ const splitSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Payments at the split level. Each payment is a single incoming payment made
+// by `paidBy` and split into one or more `allocations` (paidFor => amount).
+splitSchema.add({
+  payments: [
+    {
+      amount: { type: Number, default: 0 },
+      paidBy: {
+        // store minimal payer info (id or name/email) so templates can use it
+        id: { type: mongoose.Schema.Types.Mixed, default: null },
+        name: { type: String, default: '' },
+        email: { type: String, default: '' },
+      },
+      allocations: [
+        {
+          // paidFor can be a user _id (ObjectId) or a name/email string
+          paidFor: { type: mongoose.Schema.Types.Mixed },
+          paidForName: { type: String, default: '' },
+          paidForEmail: { type: String, default: '' },
+          amount: { type: Number, default: 0 },
+        },
+      ],
+      note: { type: String, default: '' },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
+});
 
 // Index for faster queries
 splitSchema.index({ receipt: 1 });

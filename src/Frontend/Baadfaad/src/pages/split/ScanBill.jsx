@@ -36,7 +36,9 @@ export default function ScanBill() {
   const [progress, setProgress] = useState(0);
   const [scannedData, setScannedData] = useState(null);
   const [manualItems, setManualItems] = useState([]);
+  const [participantsList, setParticipantsList] = useState([]);
   const [itemName, setItemName] = useState("");
+  const [itemAssigned, setItemAssigned] = useState([]);
   const [itemPrice, setItemPrice] = useState("");
   const [itemQuantity, setItemQuantity] = useState("1");
   const [saving, setSaving] = useState(false);
@@ -48,16 +50,43 @@ export default function ScanBill() {
   const splitId = searchParams.get("splitId");
   const type = searchParams.get("type");
   const groupId = searchParams.get("groupId");
+  const roomId = type === 'group' ? groupId : sessionId;
 
   // Detect if current user is host (first participant in session)
   useEffect(() => {
     const detectHost = async () => {
+      // If this is a group link, fetch group members and treat group.creator as host
+      if (type === 'group' && groupId) {
+        try {
+          const groupRes = await api.get(`/groups/${groupId}`);
+          const grp = groupRes.data.data || groupRes.data;
+          const members = grp.members || [];
+          const normalized = members.map((m) => {
+            const id = m._id || m.id || m;
+            const name = m.fullName || m.name || m.email || (m.user && (m.user.fullName || m.user.name)) || `User`;
+            return { id: String(id), name };
+          });
+          setParticipantsList(normalized);
+          const currentUserId = String(user?._id || user?.id || '');
+          const creatorId = String(grp.createdBy?._id || grp.createdBy || '');
+          setIsHost(creatorId === currentUserId);
+        } catch (err) {
+          console.error('Failed to load group for ScanBill:', err);
+          setIsHost(false);
+        } finally {
+          setHostLoading(false);
+        }
+        return;
+      }
+
+      // session-based detection
       if (!sessionId) {
         // No session = direct split, user is effectively the host
         setIsHost(true);
         setHostLoading(false);
         return;
       }
+
       try {
         const sessionRes = await api.get(`/session/${sessionId}`);
         const normalizeId = (v) => {
@@ -68,6 +97,13 @@ export default function ScanBill() {
         };
         const currentUserId = normalizeId(user?._id || user?.id);
         const participants = sessionRes.data?.participants || sessionRes.data?.session?.participants || [];
+        // normalize participants for selection
+        const normalized = participants.map((p) => {
+          const id = p.user?._id || p.user?.id || p.participant?._id || p.participant?.id || p._id || p.id;
+          const name = p.name || p.user?.name || p.participant?.name || p.email || p.user?.email || p.participant?.email || `User`;
+          return { id: String(id), name };
+        });
+        setParticipantsList(normalized);
         const firstP = participants[0];
         if (firstP && currentUserId) {
           const hostId = normalizeId(firstP.user || firstP.participant || firstP._id);
@@ -95,7 +131,7 @@ export default function ScanBill() {
     if (data?.path) navigate(data.path);
   }, [navigate]);
 
-  useSessionSocket(sessionId, null, onHostNavigate, onItemsUpdate);
+  useSessionSocket(roomId, null, onHostNavigate, onItemsUpdate);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -112,7 +148,7 @@ export default function ScanBill() {
     setIsProcessing(true);
     setProgress(0);
 
-    const progressInterval = setInterval(() => {
+    const progressInterval = setInterval(() => {  
       setProgress((prev) => {
         if (prev >= 90) {
           return 90;
@@ -157,8 +193,8 @@ export default function ScanBill() {
       setProgress(100);
 
       // Broadcast to participants via socket
-      if (sessionId) {
-        emitItemsUpdate(sessionId, newScannedData, manualItems);
+      if (roomId) {
+        emitItemsUpdate(roomId, newScannedData, manualItems);
       }
     } catch (err) {
       setScannedData(null);
@@ -193,16 +229,18 @@ export default function ScanBill() {
         price: parseFloat(itemPrice) * parseInt(itemQuantity),
         quantity: parseInt(itemQuantity),
         unitPrice: parseFloat(itemPrice),
+        assigned: itemAssigned.slice(),
       };
       const updatedItems = [...manualItems, newItem];
       setManualItems(updatedItems);
+      setItemAssigned([]);
       setItemName("");
       setItemPrice("");
       setItemQuantity("1");
 
       // Broadcast to participants via socket
-      if (sessionId) {
-        emitItemsUpdate(sessionId, scannedData, updatedItems);
+      if (roomId) {
+        emitItemsUpdate(roomId, scannedData, updatedItems);
       }
     }
   };
@@ -212,8 +250,8 @@ export default function ScanBill() {
     setManualItems(updatedItems);
 
     // Broadcast to participants via socket
-    if (sessionId) {
-      emitItemsUpdate(sessionId, scannedData, updatedItems);
+    if (roomId) {
+      emitItemsUpdate(roomId, scannedData, updatedItems);
     }
   };
 
@@ -237,6 +275,7 @@ export default function ScanBill() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
+        assigned: item.assigned || [],
       })),
     ];
 
@@ -258,7 +297,7 @@ export default function ScanBill() {
 
       const receiptId = receiptRes.data.receipt._id;
 
-      if (splitId) {
+        if (splitId) {
         // Update existing split with receipt + session so backend auto-calculates breakdown
         const updateRes = await api.put(`/splits/${splitId}`, {
           receiptId,
@@ -270,11 +309,11 @@ export default function ScanBill() {
         localStorage.setItem("currentSplit", JSON.stringify(updateRes.data.split));
 
         // Navigate to breakdown page with all query params
-        const targetPath = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ""}`;
+        const targetPath = `/split/breakdown?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;
 
         // Emit socket event so participants are redirected too
-        if (sessionId) {
-          emitHostNavigate(sessionId, targetPath);
+        if (roomId) {
+          emitHostNavigate(roomId, targetPath);
         }
 
         navigate(targetPath);
@@ -474,7 +513,7 @@ export default function ScanBill() {
                           >
                             <span className="text-slate-700">{item.name}</span>
                             <span className="font-semibold text-slate-900">
-                              ${item.price.toFixed(2)}
+                              NPR{item.price.toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -499,7 +538,7 @@ export default function ScanBill() {
                           >
                             <span className="text-slate-700">{item.name}</span>
                             <span className="font-semibold text-slate-900">
-                              ${item.price.toFixed(2)}
+                              NPR{item.price.toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -513,7 +552,7 @@ export default function ScanBill() {
                         TOTAL
                       </span>
                       <span className="text-lg font-bold text-slate-900">
-                        ${calculateTotal().toFixed(2)}
+                        NPR{calculateTotal().toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -548,6 +587,26 @@ export default function ScanBill() {
 
               <div className="md:col-span-3">
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Assign To
+                </label>
+                <select
+                  multiple
+                  value={itemAssigned}
+                  onChange={(e) => {
+                    const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
+                    setItemAssigned(opts);
+                  }}
+                  className="w-full rounded-xl border border-zinc-300 bg-zinc-50 px-3 py-2 text-base text-slate-900 placeholder-slate-400 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                >
+                  {participantsList.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-400">Hold Ctrl/Cmd to select multiple</p>
+              </div>
+
+              <div className="md:col-span-3">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Quantity
                 </label>
                 <input
@@ -562,7 +621,7 @@ export default function ScanBill() {
 
               <div className="md:col-span-3">
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Price ($)
+                  Price (NPR)
                 </label>
                 <input
                   type="number"
@@ -598,12 +657,20 @@ export default function ScanBill() {
                     <div className="flex-1">
                       <span className="text-sm font-medium text-slate-900">{item.name}</span>
                       <span className="ml-2 text-xs text-slate-500">
-                        (${item.unitPrice.toFixed(2)} each)
+                        (NPR{item.unitPrice.toFixed(2)} each)
                       </span>
+                      {item.assigned && item.assigned.length > 0 && (
+                        <div className="mt-2 text-xs text-slate-600">
+                          Assigned to: {item.assigned.map(a => {
+                            const found = participantsList.find(p => p.id === String(a));
+                            return found ? found.name : a;
+                          }).join(', ')}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-slate-900">
-                        ${item.price.toFixed(2)}
+                        NPR{item.price.toFixed(2)}
                       </span>
                       <button
                         type="button"
@@ -637,7 +704,7 @@ export default function ScanBill() {
                   >
                     <span className="text-sm font-medium text-slate-900">{item.name}</span>
                     <span className="text-sm font-bold text-slate-900">
-                      ${item.price.toFixed(2)}
+                      NPR{item.price.toFixed(2)}
                     </span>
                   </div>
                 ))}
