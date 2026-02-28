@@ -181,7 +181,7 @@ export default function Nudge() {
           paidByName: member.paidByName || '',
         },
         {
-          timeout: 15000,
+          timeout: 60000,
         },
       );
 

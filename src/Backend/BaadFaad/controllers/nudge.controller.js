@@ -10,7 +10,7 @@ import { sendMail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
-const MAIL_SEND_TIMEOUT_MS = Number(process.env.MAIL_SEND_TIMEOUT_MS || 12000);
+const MAIL_SEND_TIMEOUT_MS = Number(process.env.MAIL_SEND_TIMEOUT_MS || 45000);
 
 const toId = (value) => String(value?._id || value?.id || value || "");
 
@@ -215,7 +215,9 @@ export const createAndSendNudge = async (req, res) => {
     });
 
     if (status === "failed") {
-      const isTimeout = typeof errorMessage === "string" && errorMessage.includes("ETIMEDOUT");
+      const isTimeout =
+        typeof errorMessage === "string" &&
+        (errorMessage.includes("ETIMEDOUT") || errorMessage.toLowerCase().includes("timed out"));
       return res.status(200).json({
         success: false,
         delivered: false,

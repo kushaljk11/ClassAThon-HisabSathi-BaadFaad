@@ -103,6 +103,38 @@ const buildFallback465Config = () => {
   };
 };
 
+const buildIpv4PinnedConfig = ({
+  ipHost,
+  port,
+  secure,
+  servername,
+}) => {
+  const MAIL_USER = getMailUser();
+  const MAIL_PASS = getMailPass();
+  const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 10000);
+  const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 10000);
+  const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 15000);
+  const MAIL_DNS_TIMEOUT = Number(process.env.MAIL_DNS_TIMEOUT || 8000);
+
+  return {
+    host: ipHost,
+    port,
+    secure,
+    requireTLS: !secure,
+    auth: {
+      user: MAIL_USER,
+      pass: MAIL_PASS,
+    },
+    connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+    greetingTimeout: MAIL_GREETING_TIMEOUT,
+    socketTimeout: MAIL_SOCKET_TIMEOUT,
+    dnsTimeout: MAIL_DNS_TIMEOUT,
+    tls: {
+      servername,
+    },
+  };
+};
+
 export const verifyMailConnection = async () => {
   await getTransporter().verify();
 };
@@ -126,7 +158,34 @@ export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" 
       `[mail] primary SMTP failed: host=${originalHost} port=${originalPort} code=${error?.code || "na"} address=${error?.address || "na"} message=${error?.message || error}`
     );
 
-    // Auto-fallback for Render/Gmail IPv6 connectivity problems.
+    // Retry using a pinned IPv4 address for the same SMTP host/port.
+    if (shouldRetryWithGmail465(error)) {
+      try {
+        const ipv4List = await dnsPromises.resolve4(originalHost);
+        const ipv4 = ipv4List?.[0];
+        if (ipv4) {
+          const ipv4Transporter = nodemailer.createTransport(
+            buildIpv4PinnedConfig({
+              ipHost: ipv4,
+              port: originalPort,
+              secure: originalPort === 465 || process.env.SMTP_SECURE === "true",
+              servername: originalHost,
+            })
+          );
+          const ipv4Result = await ipv4Transporter.sendMail(payload);
+          console.warn(
+            `[mail] primary SMTP failed; IPv4-pinned retry succeeded via ${ipv4}:${originalPort}`
+          );
+          return ipv4Result;
+        }
+      } catch (ipv4Error) {
+        console.error(
+          `[mail] IPv4-pinned retry failed: code=${ipv4Error?.code || "na"} address=${ipv4Error?.address || "na"} message=${ipv4Error?.message || ipv4Error}`
+        );
+      }
+    }
+
+    // Auto-fallback for Render/Gmail connectivity problems.
     if (shouldRetryWithGmail465(error) && originalHost === GMAIL_HOST && originalPort !== 465) {
       try {
         const fallbackTransporter = nodemailer.createTransport(buildFallback465Config());
@@ -137,6 +196,28 @@ export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" 
         console.error(
           `[mail] fallback smtp.gmail.com:465 also failed: code=${fallbackError?.code || "na"} address=${fallbackError?.address || "na"} message=${fallbackError?.message || fallbackError}`
         );
+        // Last attempt: pin an IPv4 for 465 fallback too.
+        try {
+          const ipv4List = await dnsPromises.resolve4(GMAIL_HOST);
+          const ipv4 = ipv4List?.[0];
+          if (ipv4) {
+            const pinned465 = nodemailer.createTransport(
+              buildIpv4PinnedConfig({
+                ipHost: ipv4,
+                port: 465,
+                secure: true,
+                servername: GMAIL_HOST,
+              })
+            );
+            const pinnedResult = await pinned465.sendMail(payload);
+            console.warn(`[mail] fallback 465 IPv4-pinned retry succeeded via ${ipv4}:465`);
+            return pinnedResult;
+          }
+        } catch (pinned465Error) {
+          console.error(
+            `[mail] fallback 465 IPv4-pinned retry failed: code=${pinned465Error?.code || "na"} address=${pinned465Error?.address || "na"} message=${pinned465Error?.message || pinned465Error}`
+          );
+        }
       }
     }
 
