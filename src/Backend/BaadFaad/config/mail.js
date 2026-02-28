@@ -8,6 +8,10 @@ import nodemailer from "nodemailer";
 
 const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
 const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
+const getResendApiKey = () => String(process.env.RESEND_API_KEY || "").trim();
+const isResendEnabled = () => Boolean(getResendApiKey());
+const getMailFrom = (fromName = "BaadFaad") =>
+  process.env.MAIL_FROM || `"${fromName}" <${getMailUser() || "onboarding@resend.dev"}>`;
 const GMAIL_HOST = "smtp.gmail.com";
 
 // Validation happens when transporter is actually used, not at import time
@@ -94,13 +98,66 @@ const buildFallback465Config = () => {
 };
 
 export const verifyMailConnection = async () => {
+  if (isResendEnabled()) {
+    const apiKey = getResendApiKey();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch("https://api.resend.com/domains", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Resend verify failed (${res.status}): ${text}`);
+      }
+      return;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
   await getTransporter().verify();
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
+  if (isResendEnabled()) {
+    const apiKey = getResendApiKey();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: getMailFrom(fromName),
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          text: text || undefined,
+          html: html || (text ? `<p>${String(text)}</p>` : undefined),
+        }),
+        signal: controller.signal,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message = data?.message || JSON.stringify(data) || "Unknown Resend error";
+        throw new Error(`Resend send failed (${res.status}): ${message}`);
+      }
+      return { response: `resend:${data?.id || "ok"}` };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   const MAIL_USER = getMailUser();
   const payload = {
-    from: `"${fromName}" <${MAIL_USER}>`,
+    from: getMailFrom(fromName),
     to,
     subject,
     text,
