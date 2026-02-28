@@ -6,14 +6,13 @@
  */
 import nodemailer from "nodemailer";
 
+const MAIL_USER = process.env.EMAIL_USER || process.env.SMTP_MAIL;
+const MAIL_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
-  const requiredEnvVars = ["EMAIL_USER", "EMAIL_PASS"];
-  
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+  if (!MAIL_USER || !MAIL_PASS) {
+    throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS or SMTP_MAIL/SMTP_PASS");
   }
 
   return process.env.SMTP_HOST
@@ -22,8 +21,8 @@ const getTransporterConfig = () => {
         port: Number(process.env.SMTP_PORT || 587),
         secure: process.env.SMTP_SECURE === "true",
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          user: MAIL_USER,
+          pass: MAIL_PASS,
         },
       }
     : {
@@ -32,8 +31,8 @@ const getTransporterConfig = () => {
         secure: process.env.SMTP_SECURE === "true",
         requireTLS: true,
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          user: MAIL_USER,
+          pass: MAIL_PASS,
         },
       };
 };
@@ -53,7 +52,7 @@ export const verifyMailConnection = async () => {
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
   return getTransporter().sendMail({
-    from: `"${fromName}" <${process.env.EMAIL_USER}>`,
+    from: `"${fromName}" <${MAIL_USER}>`,
     to,
     subject,
     text,

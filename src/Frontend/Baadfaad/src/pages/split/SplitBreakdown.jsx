@@ -402,9 +402,29 @@ export default function SplitBreakdown() {
       }
       const payToName = collector && Number(collector.amountPaid || 0) > 0 ? collector.name : "";
 
+      const memberEmailById = new Map(
+        (groupMembers || []).map((m) => [String(m?._id || m?.id || ""), String(m?.email || "").trim()])
+      );
+      const memberEmailByName = new Map(
+        (groupMembers || [])
+          .map((m) => ({
+            key: String(m?.fullName || m?.name || m?.email || "").trim().toLowerCase(),
+            email: String(m?.email || "").trim(),
+          }))
+          .filter((x) => x.key && x.email)
+          .map((x) => [x.key, x.email])
+      );
+
       const summaryBreakdown = breakdown.map((b) => {
         const name = b.name || b.user?.name || b.participant?.name || "Participant";
-        const email = b.email || b.user?.email || b.participant?.email || "";
+        const entryId = String(b.user?._id || b.user || b.participant?._id || b.participant || b._id || "");
+        const email =
+          b.email ||
+          b.user?.email ||
+          b.participant?.email ||
+          memberEmailById.get(entryId) ||
+          memberEmailByName.get(String(name).trim().toLowerCase()) ||
+          "";
         const amountPaid = b.amountPaid || 0;
         const balanceDue = Math.max(0, b.amount - amountPaid);
         return {
@@ -427,13 +447,15 @@ export default function SplitBreakdown() {
 
       const sent = Number(res?.data?.sent ?? res?.data?.data?.sent ?? 0);
       const failed = Number(res?.data?.failed ?? res?.data?.data?.failed ?? 0);
+      const failures = res?.data?.failures || res?.data?.data?.failures || [];
       if (sent > 0) {
         toast.success(`Sent summary to ${sent} participant${sent > 1 ? "s" : ""}!`, {
           duration: 4000,
         });
       }
       if (failed > 0) {
-        toast.error(`Failed to send ${failed} email${failed > 1 ? "s" : ""}`, { duration: 3000 });
+        const firstFailure = failures[0]?.error ? ` (${failures[0].error})` : "";
+        toast.error(`Failed to send ${failed} email${failed > 1 ? "s" : ""}${firstFailure}`, { duration: 4500 });
       }
       if (sent === 0 && failed === 0) {
         toast.success("Split finalized! No emails to send (no emails on file).", { duration: 3000 });

@@ -49,6 +49,7 @@ export default function Settlement() {
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = storedUser?._id || storedUser?.id || "";
+  const breakdown = split?.breakdown || [];
 
   const highestPayerEntry = (breakdown || [])
     .slice()
@@ -90,7 +91,6 @@ export default function Settlement() {
     if (groupId) fetchData();
   }, [groupId]);
 
-  const breakdown = split?.breakdown || [];
   const totalExpense = split?.totalAmount || 0;
   const totalCollected = breakdown.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
   // Remaining should reflect the sum of outstanding positive dues (never negative)

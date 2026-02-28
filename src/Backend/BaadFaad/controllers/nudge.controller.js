@@ -6,7 +6,7 @@
 import Nudge from "../models/nudge.model.js";
 import Split from "../models/split.model.js";
 import Group from "../models/group.model.js";
-import transporter from "../config/mail.js";
+import { sendMail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
@@ -173,8 +173,7 @@ export const createAndSendNudge = async (req, res) => {
     let errorMessage = null;
 
     try {
-      await transporter.sendMail({
-        from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+      await sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
@@ -267,6 +266,11 @@ export const sendSplitSummary = async (req, res) => {
       return res.status(400).json({ message: "breakdown array is required" });
     }
 
+    const recipients = breakdown.filter((b) => String(b?.email || "").trim());
+    if (recipients.length === 0) {
+      return res.status(400).json({ message: "No participant emails found in split summary payload" });
+    }
+
     const participantCount = breakdown.length;
     const allParticipants = breakdown.map((b) => ({
       name: b.name || "Participant",
@@ -278,9 +282,9 @@ export const sendSplitSummary = async (req, res) => {
 
     let sent = 0;
     let failed = 0;
+    const failures = [];
 
-    for (const b of breakdown) {
-      if (!b.email) continue;
+    for (const b of recipients) {
 
       const template = createSplitSummaryTemplate({
         recipientName: b.name || "Friend",
@@ -294,20 +298,23 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await transporter.sendMail({
-          from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+        await sendMail({
           to: b.email,
           subject: template.subject,
           text: template.text,
           html: template.html,
         });
         sent++;
-      } catch {
+      } catch (mailErr) {
         failed++;
+        failures.push({
+          email: b.email,
+          error: mailErr?.message || "Unknown mail error",
+        });
       }
     }
 
-    return res.status(200).json({ message: "Summary emails processed", sent, failed });
+    return res.status(200).json({ message: "Summary emails processed", sent, failed, failures });
   } catch (error) {
     return res.status(500).json({ message: "Failed to send split summary", error: error.message });
   }
