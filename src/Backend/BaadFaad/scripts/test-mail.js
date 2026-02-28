@@ -27,12 +27,12 @@ if (!to) {
 
 (async () => {
   try {
-    const { sendMail, verifyMailConnection } = await import("../config/mail.js");
+    const { default: transporter } = await import("../config/mail.js");
 
-    await verifyMailConnection();
+    await transporter.verifyMailConnection();
     console.log("SMTP connection OK");
 
-    await sendMail({
+    await transporter.sendMail({
       to,
       subject: "Test Nudge",
       text: "Hello from BaadFaad!",
