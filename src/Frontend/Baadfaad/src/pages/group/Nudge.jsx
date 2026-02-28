@@ -65,15 +65,27 @@ export default function Nudge() {
             const split = splitRes.data?.split || splitRes.data;
             setSplitData(split);
             const breakdown = split?.breakdown || [];
+            const memberEmailById = new Map(
+              (groupData?.members || []).map((m) => [String(m?._id || m?.id || ""), String(m?.email || "").trim()])
+            );
 
             const mapped = breakdown.map((b) => {
+              const participantId = String(
+                b.user?._id || b.user || b.participant?._id || b.participant || b._id || ""
+              );
               const name = b.name || b.user?.name || b.participant?.name || "Participant";
-              const email = b.email || b.user?.email || "";
+              const email =
+                b.email ||
+                b.user?.email ||
+                b.participant?.email ||
+                memberEmailById.get(participantId) ||
+                "";
               const share = b.amount || 0;
               const paid = b.amountPaid || 0;
               const due = Math.max(0, share - paid);
               const isPaid = b.paymentStatus === "paid";
               const isSettled = isPaid || due <= 0;
+              const canNudge = !isSettled && Boolean(String(email).trim());
               return {
                 _id: b.participant || b.user?._id || b._id,
                 name,
@@ -85,10 +97,12 @@ export default function Nudge() {
                 status: isSettled ? "Fully Settled" : "Pending Payment",
                 amount: `Rs. ${due.toLocaleString()}`,
                 pending: !isSettled,
-                action: isSettled ? "Settled" : "Anonymous Nudge",
+                action: isSettled ? "Settled" : canNudge ? "Anonymous Nudge" : "No Email",
                 actionStyle: isSettled
                   ? "bg-zinc-100 text-slate-400"
-                  : "bg-emerald-100 text-emerald-700",
+                  : canNudge
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-orange-100 text-orange-700",
               };
             });
             setMembers(mapped);
@@ -125,7 +139,11 @@ export default function Nudge() {
   }, [groupId]);
 
   const handleSendNudge = async (member) => {
-    if (!member.email || member.action === "Settled" || member.action === "Nudge Sent") return;
+    if (!member.email) {
+      toast.error(`${member.name} has no email address. Add an email to send nudge.`);
+      return false;
+    }
+    if (member.action === "Settled" || member.action === "Nudge Sent") return false;
 
     if (!canCurrentUserNudge) {
       toast.error("Only the highest payer can send nudges right now.");
