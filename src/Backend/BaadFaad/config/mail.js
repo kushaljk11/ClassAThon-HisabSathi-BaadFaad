@@ -1,35 +1,17 @@
 /**
  * @file config/mail.js
- * @description Mail transport with provider selection.
- * - MAIL_PROVIDER=auto (default): use Resend if configured, else SMTP
- * - MAIL_PROVIDER=resend: force Resend API
- * - MAIL_PROVIDER=smtp: force SMTP
+ * @description SMTP-only mail transport with network diagnostics.
  */
 import nodemailer from "nodemailer";
 import dns from "node:dns";
 import dnsPromises from "node:dns/promises";
 
 const GMAIL_HOST = "smtp.gmail.com";
-const RESEND_API_BASE = "https://api.resend.com";
 
 const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
 const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
-const getResendApiKey = () => String(process.env.RESEND_API_KEY || "").trim();
-const getMailProvider = () => String(process.env.MAIL_PROVIDER || "auto").trim().toLowerCase();
-const getMailFrom = (fromName = "BaadFaad") => {
-  const explicitFrom = String(process.env.MAIL_FROM || "").trim();
-  if (explicitFrom) return explicitFrom;
-  const smtpUser = getMailUser();
-  if (smtpUser) return `"${fromName}" <${smtpUser}>`;
-  return `"${fromName}" <onboarding@resend.dev>`;
-};
-
-const shouldUseResend = () => {
-  const provider = getMailProvider();
-  if (provider === "resend") return true;
-  if (provider === "smtp") return false;
-  return Boolean(getResendApiKey());
-};
+const getMailFrom = (fromName = "BaadFaad") =>
+  process.env.MAIL_FROM || `"${fromName}" <${getMailUser()}>`;
 
 const getTransporterConfig = () => {
   const MAIL_USER = getMailUser();
@@ -117,43 +99,11 @@ const buildIpv4PinnedConfig = ({ ipHost, port, secure, servername }) => {
   };
 };
 
-const sendWithResend = async ({ to, subject, text, html, fromName }) => {
-  const apiKey = getResendApiKey();
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not configured");
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Number(process.env.MAIL_SEND_TIMEOUT_MS || 45000));
-  try {
-    const response = await fetch(`${RESEND_API_BASE}/emails`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: getMailFrom(fromName),
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        text: text || undefined,
-        html: html || undefined,
-      }),
-      signal: controller.signal,
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = data?.message || JSON.stringify(data) || "Unknown Resend error";
-      throw new Error(`Resend send failed (${response.status}): ${message}`);
-    }
-    return { response: `resend:${data?.id || "ok"}` };
-  } finally {
-    clearTimeout(timeout);
-  }
+export const verifyMailConnection = async () => {
+  await getTransporter().verify();
 };
 
-const sendWithSmtp = async ({ to, subject, text, html, fromName }) => {
+export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
   const payload = {
     from: getMailFrom(fromName),
     to,
@@ -231,33 +181,6 @@ const sendWithSmtp = async ({ to, subject, text, html, fromName }) => {
 
     throw error;
   }
-};
-
-export const verifyMailConnection = async () => {
-  if (shouldUseResend()) {
-    const apiKey = getResendApiKey();
-    if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
-    const response = await fetch(`${RESEND_API_BASE}/domains`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Resend verify failed (${response.status}): ${text}`);
-    }
-    return;
-  }
-
-  await getTransporter().verify();
-};
-
-export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
-  if (shouldUseResend()) {
-    return sendWithResend({ to, subject, text, html, fromName });
-  }
-  return sendWithSmtp({ to, subject, text, html, fromName });
 };
 
 export default { getTransporter, verifyMailConnection, sendMail };
