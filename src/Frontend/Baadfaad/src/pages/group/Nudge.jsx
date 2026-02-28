@@ -170,7 +170,7 @@ export default function Nudge() {
           groupId: group?._id || null,
           groupName: group?.name || "Split Group",
           amount: nudgeAmount,
-          currency: group?.defaultCurrency || "NPR",
+          currency: group?.defaultCurrency || "Rs",
           payLink: `${window.location.origin}/group/${group?._id || groupId}/settlement`,
           paidByName: member.paidByName || '',
         },

@@ -83,7 +83,7 @@ export default function Group() {
               >
                 <div className="relative rounded-[1.8rem] bg-white p-4 shadow-sm">
                   <span className="absolute right-6 top-6 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow">
-                    {group.defaultCurrency || "NPR"}
+                    {group.defaultCurrency || "Rs"}
                   </span>
                   {group.image ? (
                     <img
@@ -123,14 +123,14 @@ export default function Group() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Running Total
                 </p>
-                <p className="mt-1 text-2xl font-bold">NPR 38.50</p>
+                <p className="mt-1 text-2xl font-bold">Rs 38.50</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Tax & Service (15%)
                 </p>
-                <p className="mt-1 text-lg font-bold text-emerald-400">NPR 5.78</p>
+                <p className="mt-1 text-lg font-bold text-emerald-400">Rs 5.78</p>
               </div>
             </div>
 
