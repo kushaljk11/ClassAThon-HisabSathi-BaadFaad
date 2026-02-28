@@ -123,14 +123,14 @@ export default function Group() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Running Total
                 </p>
-                <p className="mt-1 text-2xl font-bold">$38.50</p>
+                <p className="mt-1 text-2xl font-bold">NPR 38.50</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Tax & Service (15%)
                 </p>
-                <p className="mt-1 text-lg font-bold text-emerald-400">$5.78</p>
+                <p className="mt-1 text-lg font-bold text-emerald-400">NPR 5.78</p>
               </div>
             </div>
 
