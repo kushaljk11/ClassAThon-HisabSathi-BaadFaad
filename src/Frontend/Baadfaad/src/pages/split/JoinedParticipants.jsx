@@ -33,7 +33,6 @@ export default function SessionLobby() {
   const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [session, setSession] = useState(null);
-  const [split, setSplit] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -79,10 +78,6 @@ export default function SessionLobby() {
           const grp = groupRes.data.data || groupRes.data;
           setSession({ name: grp.name || 'Group', participants: grp.members || [] });
         }
-        if (splitId) {
-          const splitRes = await api.get(`/splits/${splitId}`);
-          setSplit(splitRes.data.split);
-        }
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -91,7 +86,7 @@ export default function SessionLobby() {
     };
 
     fetchData();
-  }, [sessionId, splitId]);
+  }, [sessionId, type, groupId]);
 
   const handleParticipantJoined = useCallback((data) => {
     // Socket emits { participants, newParticipant } — update participants list
@@ -108,7 +103,9 @@ export default function SessionLobby() {
             toast.success(`${newName} joined the session`);
           }
         }
-      } catch (e) {}
+      } catch {
+        // Ignore non-critical toast failures.
+      }
       return;
     }
 
@@ -116,7 +113,7 @@ export default function SessionLobby() {
       setSession(data.session);
       return;
     }
-  }, []);
+  }, [normalizedCurrentUserId]);
 
   const handleHostNavigate = useCallback((data) => {
     if (data.path) {
@@ -128,8 +125,41 @@ export default function SessionLobby() {
 
   const splitName = session?.name || "Split Session";
 
+  const rawParticipants = session?.participants || [];
+  const uniqueParticipants = [];
+  const seenParticipantKeys = new Set();
+
+  rawParticipants.forEach((p, index) => {
+    const participantId = normalizeId(p.user || p.participant || p._id);
+    const participantEmail = (
+      p.email || p.user?.email || p.participant?.email || ""
+    )
+      .trim()
+      .toLowerCase();
+    const participantName =
+      p.name ||
+      p.user?.name ||
+      p.participant?.name ||
+      p.email ||
+      p.user?.email ||
+      p.participant?.email ||
+      `User ${index + 1}`;
+
+    const dedupeKey =
+      participantId
+        ? `id:${participantId}`
+        : participantEmail
+          ? `email:${participantEmail}`
+          : `name:${String(participantName).trim().toLowerCase()}`;
+
+    if (!seenParticipantKeys.has(dedupeKey)) {
+      seenParticipantKeys.add(dedupeKey);
+      uniqueParticipants.push(p);
+    }
+  });
+
   // Get participants from session and map them to display format
-  const participants = session?.participants?.map((p, index) => {
+  const participants = uniqueParticipants.map((p, index) => {
     const participantId = normalizeId(p.user || p.participant || p._id);
     const participantEmail = (
       p.email || p.user?.email || p.participant?.email || ""
@@ -159,12 +189,13 @@ export default function SessionLobby() {
       id: participantId || index,
       name: displayName,
       initial: participantName.charAt(0).toUpperCase(),
+      isCurrentUser,
       isHost,
       ...COLORS[index % COLORS.length],
     };
-  }) || [];
+  });
 
-  const isCurrentUserHost = participants.length > 0 && participants[0]?.name === "You";
+  const isCurrentUserHost = participants.length > 0 && Boolean(participants[0]?.isCurrentUser);
 
   const handleContinueToScan = () => {
     const path = `/split/scan?splitId=${splitId}&sessionId=${sessionId}&type=${type}${groupId ? `&groupId=${groupId}` : ''}`;

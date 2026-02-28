@@ -8,7 +8,7 @@
  *
  * @module pages/split/JoinSplit
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import SideBar from "../../components/layout/Dashboard/SideBar";
 import TopBar from "../../components/layout/Dashboard/TopBar";
@@ -28,6 +28,7 @@ export default function JoinSplit() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [joining, setJoining] = useState(false);
   const [detectedType, setDetectedType] = useState(null);
+  const joinAttemptKeyRef = useRef("");
 
   const splitId = searchParams.get("splitId");
   const sessionId = searchParams.get("sessionId");
@@ -63,6 +64,8 @@ export default function JoinSplit() {
 
   const handleJoin = useCallback(async () => {
     const effectiveTypeLocal = (pathname.includes('/group') ? 'group' : (pathname.includes('/session') ? 'session' : (type || detectedType || 'session')));
+    const joinKey = `${effectiveTypeLocal}:${splitId || ""}:${sessionId || ""}:${groupId || ""}:${currentUserId || ""}`;
+    if (joinAttemptKeyRef.current === joinKey) return;
 
     // Validate depending on link type
     if (effectiveTypeLocal === 'group') {
@@ -96,6 +99,7 @@ export default function JoinSplit() {
     }
 
     setJoining(true);
+    joinAttemptKeyRef.current = joinKey;
     const toastId = toast.loading("Joining session...");
 
     try {
@@ -118,6 +122,7 @@ export default function JoinSplit() {
       }
       } catch (err) {
       console.error("Failed to join session:", err);
+      joinAttemptKeyRef.current = "";
       toast.dismiss(toastId);
       toast.error(err.response?.data?.message || "Failed to join session");
     } finally {

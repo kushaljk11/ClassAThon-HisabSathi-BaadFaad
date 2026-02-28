@@ -27,6 +27,70 @@ const toBase64 = (file) =>
     reader.onerror = (error) => reject(error);
   });
 
+const MAX_UPLOAD_DIMENSION = 1600;
+const JPEG_QUALITY = 0.8;
+const COMPRESSION_THRESHOLD_BYTES = 1.2 * 1024 * 1024;
+
+const compressImageForUpload = (file) =>
+  new Promise((resolve) => {
+    if (!file?.type?.startsWith("image/") || file.size <= COMPRESSION_THRESHOLD_BYTES) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      try {
+        const scale = Math.min(
+          1,
+          MAX_UPLOAD_DIMENSION / Math.max(img.width || 1, img.height || 1),
+        );
+        const targetWidth = Math.max(1, Math.round(img.width * scale));
+        const targetHeight = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(objectUrl);
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, ".jpg"),
+              { type: "image/jpeg" },
+            );
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          JPEG_QUALITY,
+        );
+      } catch {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
+
 export default function ScanBill() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -118,7 +182,7 @@ export default function ScanBill() {
       }
     };
     detectHost();
-  }, [sessionId, user]);
+  }, [sessionId, user, type, groupId]);
 
   // Socket: participants receive live item updates from host
   const onItemsUpdate = useCallback((data) => {
@@ -158,7 +222,8 @@ export default function ScanBill() {
     }, 200);
 
     try {
-      const image = await toBase64(file);
+      const uploadFile = await compressImageForUpload(file);
+      const image = await toBase64(uploadFile);
       const response = await api.post("/bills/parse", { image }, { timeout: 60000 });
       const parsed = response.data || {};
 
