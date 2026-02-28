@@ -25,9 +25,23 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const pathname = location.pathname || '';
+  const flowType = String(searchParams.get('type') || '').toLowerCase();
+  const hasSessionContext = Boolean(searchParams.get('sessionId')) || flowType === 'session';
 
-  // Consider explicit session join path or legacy split paths with ?type=session as public
-  const isPublicSessionLink = pathname === '/session/join' || ((pathname === '/split/ready' || pathname === '/split/join' || pathname === '/split/joined') && searchParams.get('type') === 'session');
+  // Allow guests to stay in the real-time session flow when host navigates.
+  const publicSessionPaths = new Set([
+    '/session/join',
+    '/split/join',
+    '/split/ready',
+    '/split/joined',
+    '/split/scan',
+    '/split/breakdown',
+    '/split/calculated',
+  ]);
+
+  const isPublicSessionLink =
+    publicSessionPaths.has(pathname) &&
+    hasSessionContext;
 
   if (!isAuthenticated && !isPublicSessionLink) {
     // Redirect to login, preserving the intended location for post-login redirect
