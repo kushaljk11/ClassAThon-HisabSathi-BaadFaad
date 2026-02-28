@@ -126,22 +126,25 @@ export const createAndSendNudge = async (req, res) => {
     const hostId = toId(group.createdBy);
     const breakdown = Array.isArray(split.breakdown) ? split.breakdown : [];
 
-    // Rule: only the highest payer can send nudges.
+    // Rule: if someone has paid, only highest payer can nudge.
+    // If nobody has paid yet, allow group host to nudge.
     const highestPayer = (breakdown || [])
       .slice()
       .sort((a, b) => Number(b?.amountPaid || 0) - Number(a?.amountPaid || 0))[0] || null;
     const highestPayerId = highestPayer ? entryId(highestPayer) : "";
     const highestPaidAmount = Number(highestPayer?.amountPaid || 0);
 
-    // If nobody has paid anything yet, no one can send nudge.
-    const effectiveSenderId = highestPaidAmount > 0 ? highestPayerId : "";
+    const effectiveSenderId = highestPaidAmount > 0 ? highestPayerId : hostId;
 
     if (!effectiveSenderId) {
-      return res.status(200).json({ success: true, delivered: false, message: "No eligible sender yet. Highest payer can send nudges after payment is recorded." });
+      return res.status(200).json({ success: true, delivered: false, message: "No eligible sender found for this group." });
     }
 
     if (toId(senderId) !== effectiveSenderId) {
-      const allowedName = entryName(highestPayer) || (toId(effectiveSenderId) === hostId ? "host" : "highest payer");
+      const allowedName =
+        highestPaidAmount > 0
+          ? (entryName(highestPayer) || "highest payer")
+          : "group host";
       return res.status(200).json({
         success: true,
         delivered: false,
@@ -181,15 +184,20 @@ export const createAndSendNudge = async (req, res) => {
     let errorMessage = null;
 
     try {
+      console.log(
+        `[nudge] sending single nudge: to=${recipientEmail} splitId=${split?._id || "na"} groupId=${group?._id || groupId || "na"} senderId=${senderId || "na"}`
+      );
       await withTimeout(sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
         html: template.html,
       }), MAIL_SEND_TIMEOUT_MS);
+      console.log(`[nudge] single nudge sent: to=${recipientEmail}`);
     } catch (mailError) {
       status = "failed";
       errorMessage = mailError.message;
+      console.error(`[nudge] single nudge failed: to=${recipientEmail} error=${errorMessage}`);
     }
 
     const nudge = await Nudge.create({
@@ -293,6 +301,9 @@ export const sendSplitSummary = async (req, res) => {
     const failures = [];
 
     for (const b of recipients) {
+      console.log(
+        `[nudge] sending split-summary: to=${b.email} group=${groupName || "Split"} total=${Number(totalAmount || 0)}`
+      );
 
       const template = createSplitSummaryTemplate({
         recipientName: b.name || "Friend",
@@ -313,14 +324,20 @@ export const sendSplitSummary = async (req, res) => {
           html: template.html,
         }), MAIL_SEND_TIMEOUT_MS);
         sent++;
+        console.log(`[nudge] split-summary sent: to=${b.email}`);
       } catch (mailErr) {
         failed++;
+        console.error(`[nudge] split-summary failed: to=${b.email} error=${mailErr?.message || "unknown"}`);
         failures.push({
           email: b.email,
           error: mailErr?.message || "Unknown mail error",
         });
       }
     }
+
+    console.log(
+      `[nudge] split-summary complete: recipients=${recipients.length} sent=${sent} failed=${failed}`
+    );
 
     return res.status(200).json({ message: "Summary emails processed", sent, failed, failures });
   } catch (error) {

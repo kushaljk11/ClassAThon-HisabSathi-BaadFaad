@@ -46,7 +46,8 @@ export default function Nudge() {
     "";
 
   const highestPayerPaid = Number(highestPayerEntry?.amountPaid || 0);
-  const effectiveNudgerId = highestPayerPaid > 0 ? String(highestPayerId || "") : "";
+  const hostId = String(group?.createdBy?._id || group?.createdBy || "");
+  const effectiveNudgerId = highestPayerPaid > 0 ? String(highestPayerId || "") : hostId;
 
   const canCurrentUserNudge = !!effectiveNudgerId && String(currentUserId) === String(effectiveNudgerId);
 
@@ -146,7 +147,7 @@ export default function Nudge() {
     if (member.action === "Settled" || member.action === "Nudge Sent") return false;
 
     if (!canCurrentUserNudge) {
-      toast.error("Only the highest payer can send nudges right now.");
+      toast.error(highestPayerPaid > 0 ? "Only the highest payer can send nudges right now." : "Only the group host can send nudges right now.");
       return false;
     }
 
@@ -223,7 +224,7 @@ export default function Nudge() {
     }
 
     if (!canCurrentUserNudge) {
-      toast.error("Only the highest payer can send nudges right now.");
+      toast.error(highestPayerPaid > 0 ? "Only the highest payer can send nudges right now." : "Only the group host can send nudges right now.");
       setSendingAll(false);
       return;
     }
