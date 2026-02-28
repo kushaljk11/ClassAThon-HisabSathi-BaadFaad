@@ -1,17 +1,16 @@
 /**
  * @file config/mail.js
  * @description Nodemailer transporter configuration.
- * Supports both Gmail (default) and custom SMTP. Uses lazy initialization
- * so the transporter is only created when actually needed.
+ * SMTP-only mail transport with strong diagnostics for cloud network issues.
  */
 import nodemailer from "nodemailer";
+import dns from "node:dns";
+import dnsPromises from "node:dns/promises";
 
 const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
 const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
-const getResendApiKey = () => String(process.env.RESEND_API_KEY || "").trim();
-const isResendEnabled = () => Boolean(getResendApiKey());
 const getMailFrom = (fromName = "BaadFaad") =>
-  process.env.MAIL_FROM || `"${fromName}" <${getMailUser() || "onboarding@resend.dev"}>`;
+  process.env.MAIL_FROM || `"${fromName}" <${getMailUser()}>`;
 const GMAIL_HOST = "smtp.gmail.com";
 
 // Validation happens when transporter is actually used, not at import time
@@ -43,7 +42,11 @@ const getTransporterConfig = () => {
     greetingTimeout: MAIL_GREETING_TIMEOUT,
     socketTimeout: MAIL_SOCKET_TIMEOUT,
     dnsTimeout: MAIL_DNS_TIMEOUT,
+    // Force IPv4 DNS resolution to avoid ENETUNREACH on IPv6-only results.
     family: 4,
+    lookup: (hostname, _options, callback) => {
+      dns.lookup(hostname, { family: 4, all: false }, callback);
+    },
     tls: {
       servername: SMTP_HOST,
     },
@@ -61,11 +64,14 @@ const getTransporter = () => {
 
 const shouldRetryWithGmail465 = (error) => {
   const msg = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toUpperCase();
   return (
     msg.includes("enetunreach") ||
     msg.includes("connection timeout") ||
     msg.includes("econnection") ||
-    msg.includes("etimedout")
+    msg.includes("etimedout") ||
+    code === "ETIMEDOUT" ||
+    code === "ENETUNREACH"
   );
 };
 
@@ -98,63 +104,10 @@ const buildFallback465Config = () => {
 };
 
 export const verifyMailConnection = async () => {
-  if (isResendEnabled()) {
-    const apiKey = getResendApiKey();
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    try {
-      const res = await fetch("https://api.resend.com/domains", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Resend verify failed (${res.status}): ${text}`);
-      }
-      return;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
   await getTransporter().verify();
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
-  if (isResendEnabled()) {
-    const apiKey = getResendApiKey();
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: getMailFrom(fromName),
-          to: Array.isArray(to) ? to : [to],
-          subject,
-          text: text || undefined,
-          html: html || (text ? `<p>${String(text)}</p>` : undefined),
-        }),
-        signal: controller.signal,
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message = data?.message || JSON.stringify(data) || "Unknown Resend error";
-        throw new Error(`Resend send failed (${res.status}): ${message}`);
-      }
-      return { response: `resend:${data?.id || "ok"}` };
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
   const MAIL_USER = getMailUser();
   const payload = {
     from: getMailFrom(fromName),
@@ -163,12 +116,15 @@ export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" 
     text,
     html,
   };
+  const originalPort = Number(process.env.SMTP_PORT || 587);
+  const originalHost = process.env.SMTP_HOST || GMAIL_HOST;
 
   try {
     return await getTransporter().sendMail(payload);
   } catch (error) {
-    const originalPort = Number(process.env.SMTP_PORT || 587);
-    const originalHost = process.env.SMTP_HOST || GMAIL_HOST;
+    console.error(
+      `[mail] primary SMTP failed: host=${originalHost} port=${originalPort} code=${error?.code || "na"} address=${error?.address || "na"} message=${error?.message || error}`
+    );
 
     // Auto-fallback for Render/Gmail IPv6 connectivity problems.
     if (shouldRetryWithGmail465(error) && originalHost === GMAIL_HOST && originalPort !== 465) {
@@ -178,9 +134,21 @@ export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" 
         console.warn("[mail] primary SMTP failed; fallback via smtp.gmail.com:465 succeeded");
         return result;
       } catch (fallbackError) {
-        console.error("[mail] fallback smtp.gmail.com:465 also failed:", fallbackError?.message || fallbackError);
+        console.error(
+          `[mail] fallback smtp.gmail.com:465 also failed: code=${fallbackError?.code || "na"} address=${fallbackError?.address || "na"} message=${fallbackError?.message || fallbackError}`
+        );
       }
     }
+
+    try {
+      const [v4, v6] = await Promise.allSettled([
+        dnsPromises.resolve4(originalHost),
+        dnsPromises.resolve6(originalHost),
+      ]);
+      console.error(
+        `[mail] DNS diagnostic for ${originalHost}: A=${v4.status === "fulfilled" ? v4.value.join(",") : "ERR"} AAAA=${v6.status === "fulfilled" ? v6.value.join(",") : "ERR"}`
+      );
+    } catch {}
 
     throw error;
   }
