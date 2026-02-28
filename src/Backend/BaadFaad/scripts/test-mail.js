@@ -11,12 +11,12 @@ const envCandidates = [
   path.join(__dirname, "..", ".env"),
   path.join(__dirname, "..", "..", ".env"),
   path.join(__dirname, "..", "..", "..", ".env"),
+  path.join(__dirname, "..", "..", "..", "..", ".env"),
   path.join(process.cwd(), ".env"),
 ].filter(Boolean);
 
 for (const envPath of envCandidates) {
-  const result = dotenv.config({ path: envPath });
-  if (!result.error) break;
+  dotenv.config({ path: envPath });
 }
 
 const to = process.argv[2] || process.env.MAIL_TEST_TO || "kris.neparica@gmail.com";

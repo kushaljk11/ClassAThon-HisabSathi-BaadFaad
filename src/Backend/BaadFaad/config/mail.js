@@ -6,18 +6,21 @@
  */
 import nodemailer from "nodemailer";
 
-const MAIL_USER = process.env.EMAIL_USER || process.env.SMTP_MAIL;
-const MAIL_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS;
-const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 10000);
-const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 10000);
-const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 15000);
-const MAIL_DNS_TIMEOUT = Number(process.env.MAIL_DNS_TIMEOUT || 8000);
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE = process.env.SMTP_SECURE === "true";
+const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
+const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
+  const MAIL_USER = getMailUser();
+  const MAIL_PASS = getMailPass();
+  const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 10000);
+  const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 10000);
+  const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 15000);
+  const MAIL_DNS_TIMEOUT = Number(process.env.MAIL_DNS_TIMEOUT || 8000);
+  const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+  const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+  const SMTP_SECURE = process.env.SMTP_SECURE === "true";
+
   if (!MAIL_USER || !MAIL_PASS) {
     throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS or SMTP_MAIL/SMTP_PASS");
   }
@@ -56,6 +59,7 @@ export const verifyMailConnection = async () => {
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
+  const MAIL_USER = getMailUser();
   return getTransporter().sendMail({
     from: `"${fromName}" <${MAIL_USER}>`,
     to,
