@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sendMail, verifyMailConnection } from "../config/mail.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +27,8 @@ if (!to) {
 
 (async () => {
   try {
+    const { sendMail, verifyMailConnection } = await import("../config/mail.js");
+
     await verifyMailConnection();
     console.log("SMTP connection OK");
 

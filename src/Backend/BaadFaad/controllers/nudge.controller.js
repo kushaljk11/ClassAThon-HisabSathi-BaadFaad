@@ -10,8 +10,6 @@ import transporter from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
-const MAIL_SEND_TIMEOUT_MS = Number(process.env.MAIL_SEND_TIMEOUT_MS || 45000);
-
 const toId = (value) => String(value?._id || value?.id || value || "");
 
 const entryId = (entry) =>
@@ -58,12 +56,6 @@ const buildSettlementLink = ({ providedLink, groupId }) => {
   if (!groupId) return firstOrigin;
   return `${firstOrigin}/group/${groupId}/settlement`;
 };
-
-const withTimeout = (promise, timeoutMs, timeoutMessage = "Mail send timed out") =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)),
-  ]);
 
 /**
  * Create a nudge record and send a reminder email to the recipient.
@@ -187,12 +179,12 @@ export const createAndSendNudge = async (req, res) => {
       console.log(
         `[nudge] sending single nudge: to=${recipientEmail} splitId=${split?._id || "na"} groupId=${group?._id || groupId || "na"} senderId=${senderId || "na"}`
       );
-      await withTimeout(transporter.sendMail({
+      await transporter.sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
         html: template.html,
-      }), MAIL_SEND_TIMEOUT_MS);
+      });
       console.log(`[nudge] single nudge sent: to=${recipientEmail}`);
     } catch (mailError) {
       status = "failed";
@@ -215,9 +207,7 @@ export const createAndSendNudge = async (req, res) => {
     });
 
     if (status === "failed") {
-      const isTimeout =
-        typeof errorMessage === "string" &&
-        (errorMessage.includes("ETIMEDOUT") || errorMessage.toLowerCase().includes("timed out"));
+      const isTimeout = typeof errorMessage === "string" && errorMessage.toLowerCase().includes("timeout");
       return res.status(200).json({
         success: false,
         delivered: false,
@@ -319,12 +309,12 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await withTimeout(transporter.sendMail({
+        await transporter.sendMail({
           to: b.email,
           subject: template.subject,
           text: template.text,
           html: template.html,
-        }), MAIL_SEND_TIMEOUT_MS);
+        });
         sent++;
         console.log(`[nudge] split-summary sent: to=${b.email}`);
       } catch (mailErr) {

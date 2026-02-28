@@ -6,11 +6,17 @@
  */
 import nodemailer from "nodemailer";
 
-const MAIL_USER = process.env.EMAIL_USER || process.env.SMTP_MAIL;
-const MAIL_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
+const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
+  const MAIL_USER = getMailUser();
+  const MAIL_PASS = getMailPass();
+  const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 15000);
+  const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 15000);
+  const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 30000);
+
   if (!MAIL_USER || !MAIL_PASS) {
     throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS or SMTP_MAIL/SMTP_PASS");
   }
@@ -24,6 +30,9 @@ const getTransporterConfig = () => {
           user: MAIL_USER,
           pass: MAIL_PASS,
         },
+        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+        greetingTimeout: MAIL_GREETING_TIMEOUT,
+        socketTimeout: MAIL_SOCKET_TIMEOUT,
       }
     : {
         host: "smtp.gmail.com",
@@ -34,6 +43,9 @@ const getTransporterConfig = () => {
           user: MAIL_USER,
           pass: MAIL_PASS,
         },
+        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+        greetingTimeout: MAIL_GREETING_TIMEOUT,
+        socketTimeout: MAIL_SOCKET_TIMEOUT,
       };
 };
 
@@ -51,6 +63,7 @@ export const verifyMailConnection = async () => {
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
+  const MAIL_USER = getMailUser();
   return getTransporter().sendMail({
     from: `"${fromName}" <${MAIL_USER}>`,
     to,
