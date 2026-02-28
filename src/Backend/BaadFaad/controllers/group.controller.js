@@ -97,7 +97,8 @@ const generateQRCode = async (data) => {
  */
 export const createGroup = async (req, res) => {
   try {
-    const { name, description, createdBy, members, defaultCurrency, splitId, sessionId } = req.body;
+    const { name, description, members, defaultCurrency, splitId, sessionId } = req.body;
+    const createdBy = req.authUser?._id || req.user?.id || req.body.createdBy;
 
     if (!name || !createdBy) {
       return sendError(res, 400, 'name and createdBy are required');
@@ -295,7 +296,7 @@ export const updateGroup = async (req, res) => {
 export const joinGroup = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { userId, name, email } = req.body;
+    const userId = req.authUser?._id || req.user?.id || req.body.userId;
 
     if (!isValidObjectId(groupId)) {
       return sendError(res, 400, 'Invalid groupId');
@@ -311,13 +312,7 @@ export const joinGroup = async (req, res) => {
       return sendError(res, 400, 'Group is not active');
     }
 
-    let memberIdToAdd = userId;
-
-    // If no userId provided, check for name to create guest participant
-    if (!userId && name) {
-      // For guest users, we'll track them differently or skip for groups
-      return sendError(res, 400, 'Guest participants not yet supported for groups. Please provide userId.');
-    }
+    const memberIdToAdd = userId;
 
     if (!memberIdToAdd || !isValidObjectId(memberIdToAdd)) {
       return sendError(res, 400, 'Valid userId is required');
@@ -346,7 +341,7 @@ export const joinGroup = async (req, res) => {
       const newMember = group.members.find((m) => String(m._id) === String(memberIdToAdd));
       io.to(String(group._id)).emit('participant-joined', {
         participants: group.members,
-        newParticipant: newMember || { _id: memberIdToAdd, name, email },
+        newParticipant: newMember || { _id: memberIdToAdd },
       });
     } catch (e) {
       // Non-fatal: if socket isn't initialized, continue silently

@@ -22,6 +22,8 @@ export default function JoinSplit() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
+  const userEmail = String(user?.email || '').toLowerCase();
+  const isOAuthUser = Boolean(userEmail) && !userEmail.endsWith('@local');
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -85,6 +87,15 @@ export default function JoinSplit() {
         localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search }));
       } catch (e) {}
       navigate("/login", { state: { from: location } });
+      return;
+    }
+
+    if (effectiveTypeLocal === 'group' && !isOAuthUser) {
+      toast.error('Group link requires Google login');
+      try {
+        localStorage.setItem('postAuthRedirect', JSON.stringify({ pathname: location.pathname, search: location.search }));
+      } catch (e) {}
+      navigate('/login', { state: { from: location } });
       return;
     }
 

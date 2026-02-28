@@ -87,6 +87,22 @@ export default function CreateSplit() {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const userId = userData._id || userData.id;
+      const userEmail = String(userData.email || '').toLowerCase();
+      const isOAuthUser = Boolean(userEmail) && !userEmail.endsWith('@local');
+
+      if (!isOAuthUser) {
+        toast.dismiss(toastId);
+        toast.error('Create Group requires Google login');
+        navigate('/login', {
+          state: {
+            from: {
+              pathname: '/split/create',
+              search: '?type=group',
+            },
+          },
+        });
+        return;
+      }
 
       // 1. Create a split
       const splitRes = await api.post("/splits", {
@@ -201,6 +217,9 @@ export default function CreateSplit() {
                   <FaUserFriends className="text-lg" />
                   {loading ? "Creating..." : "Share QR and Create Group"}
                 </button>
+                <p className="text-center text-xs font-semibold text-slate-500">
+                  Group flow requires Google OAuth login.
+                </p>
               </div>
 
               <p className="text-center text-sm text-slate-400">

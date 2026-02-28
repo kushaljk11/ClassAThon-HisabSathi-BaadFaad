@@ -8,6 +8,20 @@
  * @module middlewares/auth.middleware
  */
 import jwt from 'jsonwebtoken';
+import { User } from '../models/userModel.js';
+
+const resolveBearerToken = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.split(' ')[1];
+};
+
+const verifyToken = (token) => {
+  const secret = process.env.JWT_SECRET || 'baadfaad-dev-secret';
+  return jwt.verify(token, secret);
+};
 
 /**
  * Verify JWT token and attach decoded user info to the request.
@@ -20,9 +34,9 @@ import jwt from 'jsonwebtoken';
  */
 export const protect = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const token = resolveBearerToken(req);
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       // In development / prototype mode, allow requests without a token
       if (process.env.NODE_ENV !== 'production') {
         return next();
@@ -30,12 +44,62 @@ export const protect = (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Access denied' });
     }
 
-    const token = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET || 'baadfaad-dev-secret';
-    const decoded = jwt.verify(token, secret);
+    const decoded = verifyToken(token);
     req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Invalid access token' });
+  }
+};
+
+/**
+ * Strict auth middleware for endpoints that must always require JWT auth,
+ * regardless of environment.
+ */
+export const protectStrict = (req, res, next) => {
+  try {
+    const token = resolveBearerToken(req);
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Access denied' });
+    }
+
+    const decoded = verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invalid access token' });
+  }
+};
+
+/**
+ * Ensures the caller is an OAuth-backed user (non-guest) by checking that
+ * the linked account email is not a generated local guest address.
+ */
+export const requireOAuthUser = async (req, res, next) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Access denied' });
+    }
+
+    const authUser = await User.findById(req.user.id).select('name email');
+    if (!authUser) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    const email = String(authUser.email || '').toLowerCase();
+    const isGuestAccount = email.endsWith('@local');
+
+    if (isGuestAccount) {
+      return res.status(403).json({
+        success: false,
+        message: 'Google OAuth is required for group actions',
+      });
+    }
+
+    req.authUser = authUser;
+    next();
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to validate user' });
   }
 };

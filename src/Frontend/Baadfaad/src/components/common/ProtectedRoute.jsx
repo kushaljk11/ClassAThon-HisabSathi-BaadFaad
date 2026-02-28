@@ -7,7 +7,7 @@ import { useMemo } from 'react';
  * Redirects to login if user is not authenticated
  */
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -43,8 +43,16 @@ const ProtectedRoute = ({ children }) => {
     publicSessionPaths.has(pathname) &&
     hasSessionContext;
 
+  const userEmail = String(user?.email || '').toLowerCase();
+  const isOAuthUser = Boolean(userEmail) && !userEmail.endsWith('@local');
+  const isGroupPath = pathname === '/group' || pathname.startsWith('/group/');
+
   if (!isAuthenticated && !isPublicSessionLink) {
     // Redirect to login, preserving the intended location for post-login redirect
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (isGroupPath && (!isAuthenticated || !isOAuthUser)) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 

@@ -27,15 +27,16 @@ import {
   removeMember,
   updateGroup,
 } from '../controllers/group.controller.js';
+import { protectStrict, requireOAuthUser } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', createGroup);
+router.post('/', protectStrict, requireOAuthUser, createGroup);
 router.get('/', getGroups);
 router.get('/by-split/:splitId', getGroupBySplitId);
 router.get('/:groupId', getGroupById);
 router.patch('/:groupId', updateGroup);
-router.post('/:groupId/join', joinGroup); // Public endpoint for QR code scanning
+router.post('/:groupId/join', protectStrict, requireOAuthUser, joinGroup);
 router.post('/:groupId/members', addMember);
 router.delete('/:groupId/members/:userId', removeMember);
 router.delete('/:groupId', deactivateGroup);
