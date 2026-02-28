@@ -12,6 +12,9 @@ const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 10
 const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 10000);
 const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 15000);
 const MAIL_DNS_TIMEOUT = Number(process.env.MAIL_DNS_TIMEOUT || 8000);
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = process.env.SMTP_SECURE === "true";
 
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
@@ -19,34 +22,24 @@ const getTransporterConfig = () => {
     throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS or SMTP_MAIL/SMTP_PASS");
   }
 
-  return process.env.SMTP_HOST
-    ? {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: MAIL_USER,
-          pass: MAIL_PASS,
-        },
-        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
-        greetingTimeout: MAIL_GREETING_TIMEOUT,
-        socketTimeout: MAIL_SOCKET_TIMEOUT,
-        dnsTimeout: MAIL_DNS_TIMEOUT,
-      }
-    : {
-        host: "smtp.gmail.com",
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        requireTLS: true,
-        auth: {
-          user: MAIL_USER,
-          pass: MAIL_PASS,
-        },
-        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
-        greetingTimeout: MAIL_GREETING_TIMEOUT,
-        socketTimeout: MAIL_SOCKET_TIMEOUT,
-        dnsTimeout: MAIL_DNS_TIMEOUT,
-      };
+  return {
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    requireTLS: !SMTP_SECURE,
+    auth: {
+      user: MAIL_USER,
+      pass: MAIL_PASS,
+    },
+    connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+    greetingTimeout: MAIL_GREETING_TIMEOUT,
+    socketTimeout: MAIL_SOCKET_TIMEOUT,
+    dnsTimeout: MAIL_DNS_TIMEOUT,
+    family: 4,
+    tls: {
+      servername: SMTP_HOST,
+    },
+  };
 };
 
 // Lazy initialization - transporter is created only when actually used
