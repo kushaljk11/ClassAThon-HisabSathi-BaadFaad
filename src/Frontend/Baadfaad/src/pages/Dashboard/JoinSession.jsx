@@ -129,11 +129,6 @@ export default function JoinSession() {
   const startScanner = async () => {
     setScanError("");
 
-    if (!("BarcodeDetector" in window)) {
-      setScanError("QR scanner is not supported in this browser. Please paste the link manually.");
-      return;
-    }
-
     if (!navigator.mediaDevices?.getUserMedia) {
       setScanError("Camera is not available on this device/browser.");
       return;
@@ -153,7 +148,23 @@ export default function JoinSession() {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
 
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const detector =
+        "BarcodeDetector" in window
+          ? new window.BarcodeDetector({ formats: ["qr_code"] })
+          : null;
+
+      const handleScannedValue = (value) => {
+        const scanned = String(value || "").trim();
+        if (!scanned) return false;
+
+        setSessionLink(scanned);
+        stopScanner();
+        setScannerOpen(false);
+        toast.success("QR scanned successfully");
+        parseAndNavigate(scanned);
+        return true;
+      };
+
       setScannerActive(true);
 
       const scanLoop = async () => {
@@ -163,23 +174,34 @@ export default function JoinSession() {
         const canvas = canvasRef.current;
 
         if (video.readyState >= 2) {
-          const ctx = canvas.getContext("2d");
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          const sourceWidth = video.videoWidth || 640;
+          const sourceHeight = video.videoHeight || 480;
+
+          // Keep decode workload reasonable on lower-end phones.
+          const maxWidth = 960;
+          const scale = sourceWidth > maxWidth ? maxWidth / sourceWidth : 1;
+
+          canvas.width = Math.max(1, Math.floor(sourceWidth * scale));
+          canvas.height = Math.max(1, Math.floor(sourceHeight * scale));
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           try {
-            const codes = await detector.detect(canvas);
-            if (codes?.length) {
-              const value = String(codes[0].rawValue || "").trim();
-              if (value) {
-                setSessionLink(value);
-                stopScanner();
-                setScannerOpen(false);
-                toast.success("QR scanned successfully");
-                parseAndNavigate(value);
+            if (detector) {
+              const codes = await detector.detect(canvas);
+              if (codes?.length && handleScannedValue(codes[0].rawValue)) {
                 return;
               }
+            }
+          } catch {
+            // Fall back to jsQR below.
+          }
+
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const qr = jsQR(imageData.data, imageData.width, imageData.height);
+            if (qr?.data && handleScannedValue(qr.data)) {
+              return;
             }
           } catch {
             // Keep scanning unless a valid QR is detected.
@@ -191,7 +213,7 @@ export default function JoinSession() {
 
       rafRef.current = requestAnimationFrame(scanLoop);
     } catch (err) {
-      setScanError("Unable to access camera. Please allow permission and try again.");
+      setScanError("Unable to access camera. Allow camera permission and use HTTPS on mobile.");
       stopScanner();
     }
   };
