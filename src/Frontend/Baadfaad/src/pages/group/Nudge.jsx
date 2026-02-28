@@ -50,8 +50,6 @@ export default function Nudge() {
 
   const canCurrentUserNudge = !!effectiveNudgerId && String(currentUserId) === String(effectiveNudgerId);
 
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -130,19 +128,8 @@ export default function Nudge() {
     if (!member.email || member.action === "Settled" || member.action === "Nudge Sent") return;
 
     if (!canCurrentUserNudge) {
-      // Anonymous UX: appear to process without revealing permission details.
-      setSendingId(member._id);
-      await wait(900);
-      setMembers((prev) =>
-        prev.map((m) =>
-          m._id === member._id
-            ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
-            : m
-        )
-      );
-      toast.success(`Nudge sent to ${member.name}!`);
-      setSendingId(null);
-      return true;
+      toast.error("Only the highest payer can send nudges right now.");
+      return false;
     }
 
     const nudgeAmount = member.due || member.share || 0;
@@ -181,16 +168,8 @@ export default function Nudge() {
 
       const delivered = response?.data?.delivered !== false;
       if (!delivered) {
-        // Keep sender anonymity by not surfacing policy-specific denial reasons.
-        setMembers((prev) =>
-          prev.map((m) =>
-            m._id === member._id
-              ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
-              : m
-          )
-        );
-        toast.success(`Nudge sent to ${member.name}!`);
-        return true;
+        toast.error(response?.data?.message || `Nudge was not delivered to ${member.name}`);
+        return false;
       }
 
       // Update local state
@@ -226,19 +205,7 @@ export default function Nudge() {
     }
 
     if (!canCurrentUserNudge) {
-      for (const member of pending) {
-        setSendingId(member._id);
-        await wait(450);
-        setMembers((prev) =>
-          prev.map((m) =>
-            m._id === member._id
-              ? { ...m, action: "Nudge Sent", actionStyle: "bg-zinc-100 text-slate-400" }
-              : m
-          )
-        );
-      }
-      setSendingId(null);
-      toast.success(`Nudged ${pending.length} pending member${pending.length > 1 ? "s" : ""}!`);
+      toast.error("Only the highest payer can send nudges right now.");
       setSendingAll(false);
       return;
     }
