@@ -376,16 +376,18 @@ export default function SplitBreakdown() {
       await flushPendingAmountUpdates();
 
       let finalizeWarning = "";
-      try {
-        await api.post(`/splits/${split._id}/finalize`);
-      } catch (finalizeErr) {
-        const msg =
-          finalizeErr?.response?.data?.message ||
-          finalizeErr?.message ||
-          "";
-        // If already finalized, allow summary emails to continue.
-        if (!String(msg).toLowerCase().includes("already finalized")) {
-          finalizeWarning = msg || "Failed to finalize split";
+      if (String(split?.status || "").toLowerCase() !== "finalized") {
+        try {
+          await api.post(`/splits/${split._id}/finalize`);
+        } catch (finalizeErr) {
+          const msg =
+            finalizeErr?.response?.data?.message ||
+            finalizeErr?.message ||
+            "";
+          // If already finalized, allow summary emails to continue.
+          if (!String(msg).toLowerCase().includes("already finalized")) {
+            finalizeWarning = msg || "Failed to finalize split";
+          }
         }
       }
 

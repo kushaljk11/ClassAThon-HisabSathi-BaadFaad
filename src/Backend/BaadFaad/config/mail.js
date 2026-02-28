@@ -8,6 +8,10 @@ import nodemailer from "nodemailer";
 
 const MAIL_USER = process.env.EMAIL_USER || process.env.SMTP_MAIL;
 const MAIL_PASS = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 10000);
+const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 10000);
+const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 15000);
+const MAIL_DNS_TIMEOUT = Number(process.env.MAIL_DNS_TIMEOUT || 8000);
 
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
@@ -24,6 +28,10 @@ const getTransporterConfig = () => {
           user: MAIL_USER,
           pass: MAIL_PASS,
         },
+        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+        greetingTimeout: MAIL_GREETING_TIMEOUT,
+        socketTimeout: MAIL_SOCKET_TIMEOUT,
+        dnsTimeout: MAIL_DNS_TIMEOUT,
       }
     : {
         host: "smtp.gmail.com",
@@ -34,6 +42,10 @@ const getTransporterConfig = () => {
           user: MAIL_USER,
           pass: MAIL_PASS,
         },
+        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
+        greetingTimeout: MAIL_GREETING_TIMEOUT,
+        socketTimeout: MAIL_SOCKET_TIMEOUT,
+        dnsTimeout: MAIL_DNS_TIMEOUT,
       };
 };
 

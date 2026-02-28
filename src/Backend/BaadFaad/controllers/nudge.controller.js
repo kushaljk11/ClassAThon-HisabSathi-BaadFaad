@@ -10,6 +10,8 @@ import { sendMail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
+const MAIL_SEND_TIMEOUT_MS = Number(process.env.MAIL_SEND_TIMEOUT_MS || 12000);
+
 const toId = (value) => String(value?._id || value?.id || value || "");
 
 const entryId = (entry) =>
@@ -56,6 +58,12 @@ const buildSettlementLink = ({ providedLink, groupId }) => {
   if (!groupId) return firstOrigin;
   return `${firstOrigin}/group/${groupId}/settlement`;
 };
+
+const withTimeout = (promise, timeoutMs, timeoutMessage = "Mail send timed out") =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)),
+  ]);
 
 /**
  * Create a nudge record and send a reminder email to the recipient.
@@ -173,12 +181,12 @@ export const createAndSendNudge = async (req, res) => {
     let errorMessage = null;
 
     try {
-      await sendMail({
+      await withTimeout(sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
         html: template.html,
-      });
+      }), MAIL_SEND_TIMEOUT_MS);
     } catch (mailError) {
       status = "failed";
       errorMessage = mailError.message;
@@ -298,12 +306,12 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await sendMail({
+        await withTimeout(sendMail({
           to: b.email,
           subject: template.subject,
           text: template.text,
           html: template.html,
-        });
+        }), MAIL_SEND_TIMEOUT_MS);
         sent++;
       } catch (mailErr) {
         failed++;
