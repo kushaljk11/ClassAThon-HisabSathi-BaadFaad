@@ -112,7 +112,7 @@ export default function ReadyToSplit() {
     return (
       <div className="flex min-h-screen bg-zinc-50">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
-        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
         <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12 flex items-center justify-center">
           <FaSpinner className="animate-spin text-4xl text-emerald-500" />
         </main>
@@ -123,8 +123,7 @@ export default function ReadyToSplit() {
   return (
     <div className="flex min-h-screen bg-zinc-50">
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
-      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-      
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
       <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12">
         <div className="mx-auto max-w-xl">
           <div className="mb-6 text-center">

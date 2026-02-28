@@ -35,7 +35,7 @@ const menuItems = [
   { label: "Contact", icon: FaCog, to: "/contact" },
 ];
 
-export default function SideBar({ isOpen, onClose }) {
+export default function SideBar({ isOpen, onClose, disableInteraction = false }) {
   const { user } = useAuth();
 
   return (
@@ -55,7 +55,8 @@ export default function SideBar({ isOpen, onClose }) {
           isOpen
             ? "right-0 translate-x-0 border-l"
             : "right-0 translate-x-full md:translate-x-0"
-        }`}
+        } ${disableInteraction ? "pointer-events-none opacity-60" : ""}`}
+        style={disableInteraction ? { pointerEvents: 'none', opacity: 0.6 } : {}}
       >
         {/* Navigation Menu */}
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">

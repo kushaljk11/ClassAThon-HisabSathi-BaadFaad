@@ -464,7 +464,7 @@ export default function SplitBreakdown() {
     <div className="min-h-screen bg-zinc-100">
       <Toaster position="top-right" reverseOrder={false} />
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
-      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
 
       <main className="ml-0 mx-auto w-full max-w-6xl px-7 py-8 pt-24 md:ml-56 md:pt-8 sm:mt-10">
         <h1 className="text-3xl font-bold text-slate-900">Split Breakdown</h1>

@@ -133,7 +133,7 @@ export default function JoinSplit() {
     return (
       <div className="flex min-h-screen bg-zinc-50">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
-        <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+            <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
         <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12 flex items-center justify-center">
           <div className="text-center">
             <FaSpinner className="animate-spin text-5xl text-emerald-500 mx-auto mb-4" />
@@ -155,7 +155,7 @@ export default function JoinSplit() {
           <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
           <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
           <main className="ml-0 flex-1 px-8 py-6 pt-24 md:ml-56 md:pt-6 sm:mt-12">
-            <div className="mx-auto max-w-md">
+                <SideBar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} disableInteraction={true} />
               <div className="mb-6 text-center">
                 <h1 className="text-3xl font-bold text-slate-900">Join Split Session</h1>
                 <p className="mt-2 text-base text-slate-500">Enter your name to join as a guest</p>
