@@ -71,8 +71,9 @@ export const sendEmail = async ({
   } catch (err) {
     // Bubble up a readable Mailjet error
     const statusCode = err?.statusCode || err?.response?.status;
-    const mjMessage = err?.response?.body?.ErrorMessage || err?.message || "Mailjet send failed";
-    const details = err?.response?.body || null;
+    const body = err?.response?.body || {};
+    const mjMessage = body.ErrorMessage || body.message || err?.message || "Mailjet send failed";
+    const details = body || null;
     const wrapped = new Error(mjMessage);
     if (statusCode) wrapped.statusCode = statusCode;
     if (details) wrapped.details = details;

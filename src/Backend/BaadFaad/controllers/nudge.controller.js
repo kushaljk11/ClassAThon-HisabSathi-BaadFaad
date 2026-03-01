@@ -62,7 +62,7 @@ export const createAndSendNudge = async (req, res) => {
       });
     } catch (mailError) {
       status = "failed";
-      errorMessage = mailError.message;
+      errorMessage = mailError?.message || "Mailjet send failed";
       mailCode = mailError?.statusCode || 502;
     }
 
@@ -100,7 +100,11 @@ export const createAndSendNudge = async (req, res) => {
       nudge,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to create nudge", error: error.message });
+    return res.status(500).json({
+      message: "Failed to create nudge",
+      error: error?.message || "Unknown error",
+      details: error?.details || null,
+    });
   }
 };
 
