@@ -33,6 +33,8 @@ const getTransporterConfig = () => {
         connectionTimeout: MAIL_CONNECTION_TIMEOUT,
         greetingTimeout: MAIL_GREETING_TIMEOUT,
         socketTimeout: MAIL_SOCKET_TIMEOUT,
+        // Force IPv4 to avoid ENETUNREACH on IPv6-only resolved hosts
+        family: 4,
       }
     : {
         host: "smtp.gmail.com",
@@ -46,6 +48,8 @@ const getTransporterConfig = () => {
         connectionTimeout: MAIL_CONNECTION_TIMEOUT,
         greetingTimeout: MAIL_GREETING_TIMEOUT,
         socketTimeout: MAIL_SOCKET_TIMEOUT,
+        // Force IPv4 to avoid ENETUNREACH on IPv6-only resolved hosts
+        family: 4,
       };
 };
 
