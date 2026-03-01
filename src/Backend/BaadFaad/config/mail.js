@@ -5,6 +5,10 @@
  * so the transporter is only created when actually needed.
  */
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// Force IPv4 DNS resolution to avoid ENETUNREACH errors
+dns.setDefaultResultOrder("ipv4first");
 
 // Validation happens when transporter is actually used, not at import time
 const getTransporterConfig = () => {
@@ -16,8 +20,18 @@ const getTransporterConfig = () => {
     }
   }
 
+  const baseConfig = {
+    // Force IPv4 connection
+    family: 4,
+    // Timeouts
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+  };
+
   return process.env.SMTP_HOST
     ? {
+        ...baseConfig,
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
         secure: process.env.SMTP_SECURE === "true",
@@ -27,10 +41,10 @@ const getTransporterConfig = () => {
         },
       }
     : {
+        ...baseConfig,
         host: "smtp.gmail.com",
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        requireTLS: true,
+        port: 587,
+        secure: false,
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
