@@ -1,78 +1,80 @@
 /**
  * @file config/mail.js
- * @description Nodemailer transporter configuration.
- * Supports both Gmail (default) and custom SMTP. Uses lazy initialization
- * so the transporter is only created when actually needed.
+ * @description Mailjet client wrapper with a reusable sendEmail helper.
  */
-import nodemailer from "nodemailer";
-import dns from "dns";
+import Mailjet from "node-mailjet";
 
-// Force IPv4 DNS resolution to avoid ENETUNREACH errors
-dns.setDefaultResultOrder("ipv4first");
+let mailjetClient = null;
 
-// Validation happens when transporter is actually used, not at import time
-const getTransporterConfig = () => {
-  const requiredEnvVars = ["EMAIL_USER", "EMAIL_PASS"];
-  
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+const getMailjetClient = () => {
+  const apiKey = process.env.MAILJET_API_KEY;
+  const secretKey = process.env.MAILJET_SECRET_KEY;
+
+  if (!apiKey || !secretKey) {
+    throw new Error("Missing MAILJET_API_KEY or MAILJET_SECRET_KEY environment variables");
   }
 
-  const baseConfig = {
-    // Force IPv4 connection
-    family: 4,
-    // Timeouts
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 60000,
-  };
+  if (!mailjetClient) {
+    mailjetClient = new Mailjet({ apiKey, apiSecret: secretKey });
+  }
 
-  return process.env.SMTP_HOST
-    ? {
-        ...baseConfig,
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      }
-    : {
-        ...baseConfig,
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      };
+  return mailjetClient;
 };
 
-// Lazy initialization - transporter is created only when actually used
-let transporter = null;
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(getTransporterConfig());
-  }
-  return transporter;
+/**
+ * Send an email via Mailjet.
+ * @param {object} params
+ * @param {string|string[]} params.to - Recipient email(s)
+ * @param {string} params.subject - Email subject
+ * @param {string} [params.text] - Plain-text body
+ * @param {string} [params.html] - HTML body
+ * @param {string} [params.fromEmail] - Sender email; defaults to EMAIL_USER or MAIL_FROM_EMAIL
+ * @param {string} [params.fromName] - Sender display name
+ */
+export const sendEmail = async ({
+  to,
+  subject,
+  text,
+  html,
+  fromEmail = process.env.MAIL_FROM_EMAIL || process.env.EMAIL_USER,
+  fromName = "BaadFaad",
+}) => {
+  if (!to) throw new Error("Recipient email (to) is required");
+  if (!fromEmail) throw new Error("Sender email is required (set MAIL_FROM_EMAIL or EMAIL_USER)");
+
+  const recipients = Array.isArray(to) ? to : [to];
+
+  const messages = recipients.map((email) => ({
+    From: {
+      Email: fromEmail,
+      Name: fromName,
+    },
+    To: [
+      {
+        Email: email,
+      },
+    ],
+    Subject: subject || "",
+    TextPart: text || html || "",
+    HTMLPart: html || text || "",
+  }));
+
+  const client = getMailjetClient();
+
+  const response = await client
+    .post("send", { version: "v3.1" })
+    .request({
+      Messages: messages,
+    });
+
+  return response.body;
 };
 
 export const verifyMailConnection = async () => {
-  await getTransporter().verify();
+  // Basic ping by fetching the API key info; throws if creds are invalid
+  const client = getMailjetClient();
+  await client.get("apikey", { version: 3 }).request();
 };
 
-export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
-  return getTransporter().sendMail({
-    from: `"${fromName}" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-    html,
-  });
-};
-
-export default { getTransporter, verifyMailConnection, sendMail };
+// Default export preserves the previous shape for existing imports
+export default { sendMail: sendEmail, sendEmail, verifyMailConnection };

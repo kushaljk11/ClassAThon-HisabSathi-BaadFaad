@@ -2,7 +2,7 @@
  * @fileoverview Mail Routes
  * @description Express router for email-related endpoints.
  *              Currently provides a test/debug endpoint for verifying
- *              the Nodemailer transporter configuration.
+ *              the Mailjet configuration.
  *
  * Routes:
  *  POST /send - Send a test email to verify mail configuration

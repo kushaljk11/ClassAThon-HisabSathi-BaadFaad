@@ -4,7 +4,7 @@
  * branded HTML emails to recipients, and exposes CRUD + split-summary endpoints.
  */
 import Nudge from "../models/nudge.model.js";
-import transporter from "../config/mail.js";
+import { sendEmail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
@@ -53,8 +53,7 @@ export const createAndSendNudge = async (req, res) => {
     let errorMessage = null;
 
     try {
-      await transporter.sendMail({
-        from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+      await sendEmail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
@@ -172,8 +171,7 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await transporter.sendMail({
-          from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
+        await sendEmail({
           to: b.email,
           subject: template.subject,
           text: template.text,

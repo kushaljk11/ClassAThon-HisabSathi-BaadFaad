@@ -1,7 +1,7 @@
 /**
  * @file templates/payment.templates.js
  * @description Branded HTML email template for payment confirmation receipts.
- * Returns { subject, text, html } ready for Nodemailer.
+ * Returns { subject, text, html } ready for Mailjet.
  */
 
 /** BaadFaad brand colour palette for email templates. */

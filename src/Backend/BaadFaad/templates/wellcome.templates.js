@@ -1,7 +1,7 @@
 /**
  * @file templates/wellcome.templates.js
  * @description Branded HTML welcome email sent to new users after sign-up.
- * Returns { subject, text, html } ready for Nodemailer.
+ * Returns { subject, text, html } ready for Mailjet.
  */
 
 /** BaadFaad brand colour palette for email templates. */

@@ -32,7 +32,7 @@ BaadFaad is built specifically for Nepali group payments: it understands local p
 
 | Layer        | Technologies |
 |------------- |---------------|
-| **Backend**  | Node.js, Express 5, MongoDB, Mongoose, Socket.IO, JWT, Passport (Google OAuth 2.0), Nodemailer, @google/genai (Gemini),Tesseract.js
+| **Backend**  | Node.js, Express 5, MongoDB, Mongoose, Socket.IO, JWT, Passport (Google OAuth 2.0), Mailjet, @google/genai (Gemini),Tesseract.js
 | **Frontend** | React 19, React Router 7, Vite 7, Tailwind CSS 4, socket.io-client, react-hot-toast, vite-plugin-pwa |
 | **Database** | MongoDB (NoSQL; no seed data required) |
 
@@ -101,8 +101,8 @@ Create a `.env` file at the **project root** (or where the backend loads it), us
 | `GOOGLE_CALLBACK_URL`       | OAuth callback URL (e.g. `http://localhost:5000/api/auth/google/callback`)|
 | `GOOGLE_API_KEY`            | Google Gemini API key (for AI bill parsing)                               |
 | `QR_BASE_URL`               | Base URL for join links/QR (e.g. `http://localhost:5173`)                 |
-| `EMAIL_USER` / `EMAIL_PASS` | Credentials for Nodemailer (e.g. Gmail app password)                      |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_MAIL` / `SMTP_PASS` | SMTP configuration for sending emails           |
+| `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` | Mailjet API credentials                                         |
+| `MAIL_FROM_EMAIL`          | Verified sender email for Mailjet                                         |
 
 **Security:** Do not commit real secrets. Use `.env.example` for structure only; keep production values in a secure env/config store.
 

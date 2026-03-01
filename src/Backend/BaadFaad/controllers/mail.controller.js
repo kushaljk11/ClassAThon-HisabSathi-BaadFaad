@@ -2,7 +2,7 @@
  * @file controllers/mail.controller.js
  * @description Mail controller - utility endpoint for sending a basic test email.
  */
-import { sendMail } from "../config/mail.js";
+import { sendEmail } from "../config/mail.js";
 
 /**
  * Send a simple test email.
@@ -12,13 +12,12 @@ import { sendMail } from "../config/mail.js";
  */
 export const sendTestMail = async (req, res) => {
   try {
-    const info = await sendMail({
+    const info = await sendEmail({
       to: req.body.to,
       subject: req.body.subject || "Test Email from BaadFaad",
-      text: req.body.text || "Hello! Nodemailer Gmail setup is working.",
+      text: req.body.text || "Hello! Mailjet setup is working.",
     });
-
-    return res.status(200).json({ message: "Email sent", info: info?.response || "ok" });
+    return res.status(200).json({ message: "Email sent", info });
   } catch (error) {
     return res.status(500).json({ message: "Email sending failed", error: error.message });
   }
