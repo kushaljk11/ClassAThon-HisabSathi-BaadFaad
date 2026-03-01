@@ -6,7 +6,7 @@
 import Nudge from "../models/nudge.model.js";
 import Split from "../models/split.model.js";
 import Group from "../models/group.model.js";
-import transporter from "../config/mail.js";
+import { sendMail } from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
 
@@ -179,7 +179,7 @@ export const createAndSendNudge = async (req, res) => {
       console.log(
         `[nudge] sending single nudge: to=${recipientEmail} splitId=${split?._id || "na"} groupId=${group?._id || groupId || "na"} senderId=${senderId || "na"}`
       );
-      await transporter.sendMail({
+      await sendMail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
@@ -309,7 +309,7 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await transporter.sendMail({
+        await sendMail({
           to: b.email,
           subject: template.subject,
           text: template.text,

@@ -1,80 +1,88 @@
 /**
  * @file config/mail.js
  * @description Nodemailer transporter configuration.
- * Supports both Gmail (default) and custom SMTP. Uses lazy initialization
- * so the transporter is only created when actually needed.
+ * Uses Gmail SMTP with explicit IPv4 resolution to avoid ENETUNREACH errors
+ * in serverless environments that don't support IPv6.
  */
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// Force DNS to resolve IPv4 addresses only (fixes ENETUNREACH on Vercel/serverless)
+dns.setDefaultResultOrder("ipv4first");
 
 const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
 const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
 
-// Validation happens when transporter is actually used, not at import time
-const getTransporterConfig = () => {
+/**
+ * Create a fresh transporter for each send operation.
+ * This ensures clean connections in serverless environments.
+ */
+const createTransporter = () => {
   const MAIL_USER = getMailUser();
   const MAIL_PASS = getMailPass();
-  const MAIL_CONNECTION_TIMEOUT = Number(process.env.MAIL_CONNECTION_TIMEOUT || 15000);
-  const MAIL_GREETING_TIMEOUT = Number(process.env.MAIL_GREETING_TIMEOUT || 15000);
-  const MAIL_SOCKET_TIMEOUT = Number(process.env.MAIL_SOCKET_TIMEOUT || 30000);
 
   if (!MAIL_USER || !MAIL_PASS) {
     throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS or SMTP_MAIL/SMTP_PASS");
   }
 
-  return process.env.SMTP_HOST
-    ? {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: MAIL_USER,
-          pass: MAIL_PASS,
-        },
-        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
-        greetingTimeout: MAIL_GREETING_TIMEOUT,
-        socketTimeout: MAIL_SOCKET_TIMEOUT,
-        // Force IPv4 to avoid ENETUNREACH on IPv6-only resolved hosts
-        family: 4,
-      }
-    : {
-        host: "smtp.gmail.com",
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: process.env.SMTP_SECURE === "true",
-        requireTLS: true,
-        auth: {
-          user: MAIL_USER,
-          pass: MAIL_PASS,
-        },
-        connectionTimeout: MAIL_CONNECTION_TIMEOUT,
-        greetingTimeout: MAIL_GREETING_TIMEOUT,
-        socketTimeout: MAIL_SOCKET_TIMEOUT,
-        // Force IPv4 to avoid ENETUNREACH on IPv6-only resolved hosts
-        family: 4,
-      };
-};
+  const config = {
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false, // Use STARTTLS on port 587
+    auth: {
+      user: MAIL_USER,
+      pass: MAIL_PASS,
+    },
+    // Force IPv4 to avoid ENETUNREACH
+    family: 4,
+    // Connection settings
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+    // TLS options
+    tls: {
+      rejectUnauthorized: true,
+      minVersion: "TLSv1.2",
+    },
+    // DNS lookup override to force IPv4
+    dnsLookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
+    },
+    // Debug logging
+    logger: process.env.NODE_ENV !== "production",
+    debug: process.env.NODE_ENV !== "production",
+  };
 
-// Lazy initialization - transporter is created only when actually used
-let transporter = null;
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(getTransporterConfig());
-  }
-  return transporter;
+  return nodemailer.createTransport(config);
 };
 
 export const verifyMailConnection = async () => {
-  await getTransporter().verify();
+  const transporter = createTransporter();
+  try {
+    await transporter.verify();
+    return true;
+  } finally {
+    transporter.close();
+  }
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
   const MAIL_USER = getMailUser();
-  return getTransporter().sendMail({
-    from: `"${fromName}" <${MAIL_USER}>`,
-    to,
-    subject,
-    text,
-    html,
-  });
+  const transporter = createTransporter();
+  
+  try {
+    const result = await transporter.sendMail({
+      from: `"${fromName}" <${MAIL_USER}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+    return result;
+  } finally {
+    transporter.close();
+  }
 };
 
-export default { getTransporter, verifyMailConnection, sendMail };
+// Export both named exports and default object for backward compatibility
+export default { createTransporter, verifyMailConnection, sendMail };
