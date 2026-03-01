@@ -1,64 +1,76 @@
 /**
  * @file config/mail.js
- * @description Email service using Resend API (HTTP-based).
- * Works on Vercel and other serverless platforms that block SMTP.
- * 
- * Required env var: RESEND_API_KEY
- * Optional: EMAIL_FROM (defaults to onboarding@resend.dev for testing)
+ * @description Nodemailer transporter configuration for Gmail SMTP.
+ * Uses IPv4 to avoid ENETUNREACH on some hosting platforms.
  */
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import dns from "dns";
 
-const getResendClient = () => {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing RESEND_API_KEY environment variable");
+// Force DNS to resolve IPv4 addresses first
+dns.setDefaultResultOrder("ipv4first");
+
+const getMailUser = () => process.env.EMAIL_USER || process.env.SMTP_MAIL;
+const getMailPass = () => process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
+/**
+ * Create a fresh transporter for each send operation.
+ */
+const createTransporter = () => {
+  const MAIL_USER = getMailUser();
+  const MAIL_PASS = getMailPass();
+
+  if (!MAIL_USER || !MAIL_PASS) {
+    throw new Error("Missing mail credentials: set EMAIL_USER/EMAIL_PASS");
   }
-  return new Resend(apiKey);
-};
 
-// Default "from" address - use your verified domain in production
-const getFromAddress = () => {
-  return process.env.EMAIL_FROM || "BaadFaad <onboarding@resend.dev>";
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: MAIL_USER,
+      pass: MAIL_PASS,
+    },
+    // Force IPv4 connection
+    family: 4,
+    // Timeouts
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+    // TLS settings
+    tls: {
+      rejectUnauthorized: true,
+    },
+  });
 };
 
 export const verifyMailConnection = async () => {
-  // Resend doesn't need connection verification - it's HTTP-based
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing RESEND_API_KEY");
+  const transporter = createTransporter();
+  try {
+    await transporter.verify();
+    return true;
+  } finally {
+    transporter.close();
   }
-  return true;
 };
 
 export const sendMail = async ({ to, subject, text, html, fromName = "BaadFaad" }) => {
-  const resend = getResendClient();
-  const fromAddress = getFromAddress();
-  
-  // Use custom fromName if EMAIL_FROM is not set
-  const from = process.env.EMAIL_FROM 
-    ? fromAddress 
-    : `${fromName} <onboarding@resend.dev>`;
+  const MAIL_USER = getMailUser();
+  const transporter = createTransporter();
 
   try {
-    const result = await resend.emails.send({
-      from,
-      to: Array.isArray(to) ? to : [to],
+    const result = await transporter.sendMail({
+      from: `"${fromName}" <${MAIL_USER}>`,
+      to,
       subject,
       text,
       html,
     });
-
-    if (result.error) {
-      throw new Error(result.error.message || "Failed to send email");
-    }
-
-    console.log(`[mail] sent to=${to} id=${result.data?.id}`);
+    console.log(`[mail] sent to=${to} messageId=${result.messageId}`);
     return result;
-  } catch (error) {
-    console.error(`[mail] failed to=${to} error=${error.message}`);
-    throw error;
+  } finally {
+    transporter.close();
   }
 };
 
-// Export both named exports and default object for backward compatibility
 export default { verifyMailConnection, sendMail };
