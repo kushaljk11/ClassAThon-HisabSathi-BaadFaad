@@ -51,6 +51,7 @@ export const createAndSendNudge = async (req, res) => {
 
     let status = "sent";
     let errorMessage = null;
+    let mailCode = 200;
 
     try {
       await sendEmail({
@@ -62,6 +63,7 @@ export const createAndSendNudge = async (req, res) => {
     } catch (mailError) {
       status = "failed";
       errorMessage = mailError.message;
+      mailCode = 502;
     }
 
     const nudge = await Nudge.create({
@@ -78,13 +80,13 @@ export const createAndSendNudge = async (req, res) => {
     });
 
     if (status === "failed") {
-      const isTimeout = typeof errorMessage === "string" && errorMessage.includes("ETIMEDOUT");
-      return res.status(200).json({
+      const isTimeout = typeof errorMessage === "string" && errorMessage.toLowerCase().includes("timeout");
+      return res.status(mailCode).json({
         success: false,
         delivered: false,
         message: isTimeout
-          ? "Nudge saved, but email sending failed: SMTP server is unreachable from backend"
-          : "Nudge saved, but email sending failed",
+          ? "Nudge saved, but email sending failed: Mailjet timed out or is unreachable"
+          : `Nudge saved, but email sending failed: ${errorMessage || "Mailjet error"}`,
         error: errorMessage,
         nudge,
       });
@@ -155,6 +157,7 @@ export const sendSplitSummary = async (req, res) => {
 
     let sent = 0;
     let failed = 0;
+    const failures = [];
 
     for (const b of breakdown) {
       if (!b.email) continue;
@@ -178,12 +181,18 @@ export const sendSplitSummary = async (req, res) => {
           html: template.html,
         });
         sent++;
-      } catch {
+      } catch (mailError) {
         failed++;
+        failures.push({ email: b.email, error: mailError.message });
       }
     }
 
-    return res.status(200).json({ message: "Summary emails processed", sent, failed });
+    return res.status(failed > 0 ? 207 : 200).json({
+      message: failed > 0 ? "Summary emails processed with some failures" : "Summary emails processed",
+      sent,
+      failed,
+      failures,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to send split summary", error: error.message });
   }

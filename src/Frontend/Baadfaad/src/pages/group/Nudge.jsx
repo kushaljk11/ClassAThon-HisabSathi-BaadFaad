@@ -204,7 +204,7 @@ export default function Nudge() {
     } catch (err) {
       console.error("Failed to send nudge:", err);
       if (err?.code === "ECONNABORTED") {
-        toast.error(`Nudge timed out for ${member.name}. SMTP is slow/unreachable right now.`);
+        toast.error(`Nudge timed out for ${member.name}. Mailjet is slow or unreachable right now.`);
       } else {
         toast.error(err?.response?.data?.message || `Failed to send nudge to ${member.name}`);
       }

@@ -521,7 +521,7 @@ export const finalizeSplit = async (req, res) => {
     }
 
     if (split.status === SPLIT_STATUS.FINALIZED) {
-      return sendResponse(res, 400, false, 'Split already finalized');
+      return sendResponse(res, 200, true, 'Split already finalized', { split });
     }
 
     // Update participant totals when participant refs exist.
