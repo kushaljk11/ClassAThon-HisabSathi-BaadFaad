@@ -103,8 +103,10 @@ Create a `.env` file at the **project root** (or where the backend loads it), us
 | `QR_BASE_URL`               | Base URL for join links/QR (e.g. `http://localhost:5173`)                 |
 | `MAIL_PROVIDER`             | `mailjet` or `smtp` (default `mailjet`)                                   |
 | `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` | Mailjet API credentials (if Mailjet is used)                 |
+| `MAIL_SEND_TIMEOUT_MS`      | Max time per provider request before timeout (default `12000`)            |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP credentials (if SMTP is used/fallback)   |
 | `SMTP_SECURE`               | `true` for TLS port 465, else `false`                                     |
+| `SMTP_TIMEOUT_MS`           | SMTP socket/connection timeout in ms (default `12000`)                    |
 | `MAIL_FROM_EMAIL`           | Sender email address used by mail provider                                |
 
 Mail smoke test (from backend folder):

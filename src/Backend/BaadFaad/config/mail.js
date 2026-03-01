@@ -8,6 +8,11 @@ import nodemailer from "nodemailer";
 let mailjetClient = null;
 let smtpTransporter = null;
 
+const MAIL_SEND_TIMEOUT_MS = Math.max(
+  1000,
+  Number(process.env.MAIL_SEND_TIMEOUT_MS || 12000)
+);
+
 const PROVIDERS = {
   MAILJET: "mailjet",
   SMTP: "smtp",
@@ -26,6 +31,33 @@ const buildMailError = (message, { statusCode, code, provider, details } = {}) =
   if (provider) err.provider = provider;
   if (details) err.details = details;
   return err;
+};
+
+const withTimeout = async (promise, { timeoutMs = MAIL_SEND_TIMEOUT_MS, provider, operation } = {}) => {
+  let timer = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(
+            buildMailError(
+              `${provider || "Mail provider"} ${operation || "request"} timed out after ${timeoutMs}ms`,
+              {
+                statusCode: 504,
+                code: "MAIL_PROVIDER_TIMEOUT",
+                provider,
+                details: { timeoutMs, operation: operation || "request" },
+              }
+            )
+          );
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 };
 
 const normalizeRecipients = (to) => {
@@ -70,10 +102,17 @@ const getSmtpTransporter = () => {
 
   if (!smtpTransporter) {
     const secure = String(process.env.SMTP_SECURE || "false").toLowerCase() === "true";
+    const smtpTimeout = Math.max(
+      1000,
+      Number(process.env.SMTP_TIMEOUT_MS || MAIL_SEND_TIMEOUT_MS)
+    );
     smtpTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure,
+      connectionTimeout: smtpTimeout,
+      greetingTimeout: smtpTimeout,
+      socketTimeout: smtpTimeout,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -143,9 +182,12 @@ const sendViaMailjet = async ({ recipients, subject, text, html, fromEmail, from
   }));
 
   try {
-    const response = await client
-      .post("send", { version: "v3.1" })
-      .request({ Messages: messages });
+    const response = await withTimeout(
+      client
+        .post("send", { version: "v3.1" })
+        .request({ Messages: messages }),
+      { timeoutMs: MAIL_SEND_TIMEOUT_MS, provider: PROVIDERS.MAILJET, operation: "send" }
+    );
     return { provider: PROVIDERS.MAILJET, response: response?.body || response };
   } catch (err) {
     const statusCode = err?.statusCode || err?.response?.status;
@@ -164,13 +206,16 @@ const sendViaSmtp = async ({ recipients, subject, text, html, fromEmail, fromNam
   const transporter = getSmtpTransporter();
 
   try {
-    const info = await transporter.sendMail({
-      from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
-      to: recipients.join(", "),
-      subject: subject || "",
-      text: text || html || "",
-      html: html || text || "",
-    });
+    const info = await withTimeout(
+      transporter.sendMail({
+        from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
+        to: recipients.join(", "),
+        subject: subject || "",
+        text: text || html || "",
+        html: html || text || "",
+      }),
+      { timeoutMs: MAIL_SEND_TIMEOUT_MS, provider: PROVIDERS.SMTP, operation: "send" }
+    );
     return { provider: PROVIDERS.SMTP, response: info };
   } catch (err) {
     throw buildMailError(err?.message || "SMTP send failed", {
@@ -266,12 +311,18 @@ export const verifyMailConnection = async () => {
   for (const provider of order) {
     if (provider === PROVIDERS.MAILJET && hasMailjetCredentials()) {
       const client = getMailjetClient();
-      await client.get("apikey", { version: "v3" }).request();
+      await withTimeout(
+        client.get("apikey", { version: "v3" }).request(),
+        { timeoutMs: MAIL_SEND_TIMEOUT_MS, provider: PROVIDERS.MAILJET, operation: "verify" }
+      );
       return { ok: true, provider: PROVIDERS.MAILJET };
     }
     if (provider === PROVIDERS.SMTP && hasSmtpCredentials()) {
       const transporter = getSmtpTransporter();
-      await transporter.verify();
+      await withTimeout(
+        transporter.verify(),
+        { timeoutMs: MAIL_SEND_TIMEOUT_MS, provider: PROVIDERS.SMTP, operation: "verify" }
+      );
       return { ok: true, provider: PROVIDERS.SMTP };
     }
   }
