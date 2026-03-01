@@ -61,14 +61,28 @@ export const sendEmail = async ({
 
   const client = getMailjetClient();
 
-  const response = await client
-    .post("send", { version: "v3.1" })
-    .request({
-      Messages: messages,
-    });
-
-  return response.body;
+  try {
+    const response = await client
+      .post("send", { version: "v3.1" })
+      .request({
+        Messages: messages,
+      });
+    return response.body;
+  } catch (err) {
+    // Bubble up a readable Mailjet error
+    const statusCode = err?.statusCode || err?.response?.status;
+    const mjMessage = err?.response?.body?.ErrorMessage || err?.message || "Mailjet send failed";
+    const details = err?.response?.body || null;
+    const wrapped = new Error(mjMessage);
+    if (statusCode) wrapped.statusCode = statusCode;
+    if (details) wrapped.details = details;
+    throw wrapped;
+  }
 };
+
+// Convenience helper for simple signature (to, subject, html)
+export const sendEmailSimple = async (to, subject, html) =>
+  sendEmail({ to, subject, html, text: html });
 
 export const verifyMailConnection = async () => {
   // Basic ping by fetching the API key info; throws if creds are invalid
