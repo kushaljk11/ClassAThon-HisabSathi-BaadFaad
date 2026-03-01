@@ -60,13 +60,13 @@ if (!envLoaded) {
   dotenv.config();
 }
 
-// Render instances may not have reliable IPv6 egress to SMTP providers.
-// Prefer IPv4 for outbound DNS resolution (e.g., smtp.gmail.com).
-try {
-  dns.setDefaultResultOrder('ipv4first');
-} catch (e) {
-  console.warn('Failed to set DNS result order:', e?.message || e);
-}
+// // Render instances may not have reliable IPv6 egress to SMTP providers.
+// // Prefer IPv4 for outbound DNS resolution (e.g., smtp.gmail.com).
+// try {
+//   dns.setDefaultResultOrder('ipv4first');
+// } catch (e) {
+//   console.warn('Failed to set DNS result order:', e?.message || e);
+// }
 
 connectDB();
 

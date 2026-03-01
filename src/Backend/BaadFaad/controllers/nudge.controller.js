@@ -4,58 +4,9 @@
  * branded HTML emails to recipients, and exposes CRUD + split-summary endpoints.
  */
 import Nudge from "../models/nudge.model.js";
-import Split from "../models/split.model.js";
-import Group from "../models/group.model.js";
-import { sendMail } from "../config/mail.js";
+import transporter from "../config/mail.js";
 import createNudgeTemplate from "../templates/nudge.templates.js";
 import createSplitSummaryTemplate from "../templates/splitSummary.templates.js";
-
-const toId = (value) => String(value?._id || value?.id || value || "");
-
-const entryId = (entry) =>
-  toId(
-    (entry?.user && (entry.user._id || entry.user)) ||
-      (entry?.participant && (entry.participant._id || entry.participant)) ||
-      entry?._id ||
-      ""
-  );
-
-const entryName = (entry) =>
-  String(entry?.name || entry?.fullName || entry?.user?.name || entry?.participant?.name || "").trim();
-
-const entryEmail = (entry) =>
-  String(entry?.email || entry?.user?.email || entry?.participant?.email || "").trim().toLowerCase();
-
-const isEntrySettled = (entry) => {
-  const share = Number(entry?.amount || 0);
-  const paid = Number(entry?.amountPaid || 0);
-  const due = Math.max(0, share - paid);
-  return String(entry?.paymentStatus || "").toLowerCase() === "paid" || due <= 0;
-};
-
-const findBreakdownEntry = (breakdown, { id, email, name }) => {
-  const idStr = toId(id);
-  const emailStr = String(email || "").trim().toLowerCase();
-  const nameStr = String(name || "").trim().toLowerCase();
-
-  return (breakdown || []).find((entry) => {
-    const eid = entryId(entry);
-    const eemail = entryEmail(entry);
-    const ename = entryName(entry).toLowerCase();
-    if (idStr && eid && idStr === eid) return true;
-    if (emailStr && eemail && emailStr === eemail) return true;
-    if (nameStr && ename && nameStr === ename) return true;
-    return false;
-  });
-};
-
-const buildSettlementLink = ({ providedLink, groupId }) => {
-  if (providedLink && String(providedLink).trim()) return String(providedLink).trim();
-  const rawFrontend = String(process.env.FRONTEND_URL || "https://baadfaad.vercel.app");
-  const firstOrigin = rawFrontend.split(",")[0].trim().replace(/\/$/, "");
-  if (!groupId) return firstOrigin;
-  return `${firstOrigin}/group/${groupId}/settlement`;
-};
 
 /**
  * Create a nudge record and send a reminder email to the recipient.
@@ -69,10 +20,6 @@ export const createAndSendNudge = async (req, res) => {
       recipientName,
       recipientEmail,
       senderName,
-      senderEmail,
-      senderId,
-      splitId,
-      groupId,
       groupName,
       amount,
       currency,
@@ -92,74 +39,6 @@ export const createAndSendNudge = async (req, res) => {
       });
     }
 
-    // Strict permission enforcement: require splitId or groupId so we can
-    // verify settlement status of sender and recipient before creating a nudge.
-    if (!splitId && !groupId) {
-      return res.status(400).json({ message: "splitId or groupId is required to send a nudge" });
-    }
-
-    const split = splitId ? await Split.findById(splitId).lean() : null;
-    if (!split) {
-      return res.status(404).json({ message: "Split not found" });
-    }
-
-    const group = groupId
-      ? await Group.findById(groupId).select("createdBy splitId").lean()
-      : await Group.findOne({ splitId: split._id }).select("createdBy splitId").lean();
-
-    if (!group) {
-      return res.status(400).json({ message: "Group context is required to send nudge" });
-    }
-
-    if (!senderId) {
-      return res.status(400).json({ message: "senderId is required" });
-    }
-
-    const hostId = toId(group.createdBy);
-    const breakdown = Array.isArray(split.breakdown) ? split.breakdown : [];
-
-    // Rule: if someone has paid, only highest payer can nudge.
-    // If nobody has paid yet, allow group host to nudge.
-    const highestPayer = (breakdown || [])
-      .slice()
-      .sort((a, b) => Number(b?.amountPaid || 0) - Number(a?.amountPaid || 0))[0] || null;
-    const highestPayerId = highestPayer ? entryId(highestPayer) : "";
-    const highestPaidAmount = Number(highestPayer?.amountPaid || 0);
-
-    const effectiveSenderId = highestPaidAmount > 0 ? highestPayerId : hostId;
-
-    if (!effectiveSenderId) {
-      return res.status(200).json({ success: true, delivered: false, message: "No eligible sender found for this group." });
-    }
-
-    if (toId(senderId) !== effectiveSenderId) {
-      const allowedName =
-        highestPaidAmount > 0
-          ? (entryName(highestPayer) || "highest payer")
-          : "group host";
-      return res.status(200).json({
-        success: true,
-        delivered: false,
-        message: `Only ${allowedName} (highest payer) can send nudges for this group`,
-      });
-    }
-
-    const recipientMatch = findBreakdownEntry(breakdown, {
-      email: recipientEmail,
-      name: recipientName,
-    });
-
-    if (!recipientMatch) {
-      return res.status(200).json({ success: true, delivered: false, message: "Recipient is not part of this split" });
-    }
-
-    if (isEntrySettled(recipientMatch)) {
-      return res.status(200).json({ success: true, delivered: false, message: "Recipient already settled; no nudge created" });
-    }
-
-    const { paidByName = '' } = req.body;
-    const finalPayLink = buildSettlementLink({ providedLink: payLink, groupId: group?._id || groupId });
-
     const template = createNudgeTemplate({
       recipientName,
       senderName,
@@ -167,29 +46,23 @@ export const createAndSendNudge = async (req, res) => {
       amount,
       currency,
       dueDate,
-      payLink: finalPayLink,
-      paidByName,
-      anonymous: !!paidByName === false,
+      payLink,
     });
 
     let status = "sent";
     let errorMessage = null;
 
     try {
-      console.log(
-        `[nudge] sending single nudge: to=${recipientEmail} splitId=${split?._id || "na"} groupId=${group?._id || groupId || "na"} senderId=${senderId || "na"}`
-      );
-      await sendMail({
+      await transporter.sendMail({
+        from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
         html: template.html,
       });
-      console.log(`[nudge] single nudge sent: to=${recipientEmail}`);
     } catch (mailError) {
       status = "failed";
       errorMessage = mailError.message;
-      console.error(`[nudge] single nudge failed: to=${recipientEmail} error=${errorMessage}`);
     }
 
     const nudge = await Nudge.create({
@@ -200,14 +73,13 @@ export const createAndSendNudge = async (req, res) => {
       amount,
       currency,
       dueDate,
-      payLink: finalPayLink,
-      paidByName: paidByName || '',
+      payLink,
       status,
       errorMessage,
     });
 
     if (status === "failed") {
-      const isTimeout = typeof errorMessage === "string" && errorMessage.toLowerCase().includes("timeout");
+      const isTimeout = typeof errorMessage === "string" && errorMessage.includes("ETIMEDOUT");
       return res.status(200).json({
         success: false,
         delivered: false,
@@ -274,28 +146,19 @@ export const sendSplitSummary = async (req, res) => {
       return res.status(400).json({ message: "breakdown array is required" });
     }
 
-    const recipients = breakdown.filter((b) => String(b?.email || "").trim());
-    if (recipients.length === 0) {
-      return res.status(400).json({ message: "No participant emails found in split summary payload" });
-    }
-
     const participantCount = breakdown.length;
     const allParticipants = breakdown.map((b) => ({
       name: b.name || "Participant",
       share: b.share || 0,
       amountPaid: b.amountPaid || 0,
       balanceDue: b.balanceDue || 0,
-      paidByName: b.paidByName || '',
     }));
 
     let sent = 0;
     let failed = 0;
-    const failures = [];
 
-    for (const b of recipients) {
-      console.log(
-        `[nudge] sending split-summary: to=${b.email} group=${groupName || "Split"} total=${Number(totalAmount || 0)}`
-      );
+    for (const b of breakdown) {
+      if (!b.email) continue;
 
       const template = createSplitSummaryTemplate({
         recipientName: b.name || "Friend",
@@ -309,29 +172,20 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await sendMail({
+        await transporter.sendMail({
+          from: `"BaadFaad" <${process.env.EMAIL_USER}>`,
           to: b.email,
           subject: template.subject,
           text: template.text,
           html: template.html,
         });
         sent++;
-        console.log(`[nudge] split-summary sent: to=${b.email}`);
-      } catch (mailErr) {
+      } catch {
         failed++;
-        console.error(`[nudge] split-summary failed: to=${b.email} error=${mailErr?.message || "unknown"}`);
-        failures.push({
-          email: b.email,
-          error: mailErr?.message || "Unknown mail error",
-        });
       }
     }
 
-    console.log(
-      `[nudge] split-summary complete: recipients=${recipients.length} sent=${sent} failed=${failed}`
-    );
-
-    return res.status(200).json({ message: "Summary emails processed", sent, failed, failures });
+    return res.status(200).json({ message: "Summary emails processed", sent, failed });
   } catch (error) {
     return res.status(500).json({ message: "Failed to send split summary", error: error.message });
   }
