@@ -1,36 +1,37 @@
-import nodemailer from "nodemailer";
-import dns from "dns";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Force IPv4 DNS resolution to avoid ENETUNREACH on IPv6
-dns.setDefaultResultOrder("ipv4first");
-
 async function testMail() {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER || process.env.SMTP_MAIL || process.env.EMAIL_USER,
-      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-    },
-    // Force IPv4 to avoid ENETUNREACH
-    family: 4,
-    // Custom DNS lookup to force IPv4
-    dnsLookup: (hostname, options, callback) => {
-      dns.lookup(hostname, { family: 4 }, callback);
-    },
-  });
+  const apiKey = process.env.RESEND_API_KEY;
+  
+  if (!apiKey) {
+    console.error("Missing RESEND_API_KEY in environment variables");
+    process.exit(1);
+  }
 
+  const resend = new Resend(apiKey);
+  
   try {
-    await transporter.verify();
-    console.log("SMTP connection OK");
+    // Test by sending to yourself or a test email
+    const testEmail = process.env.TEST_EMAIL || "delivered@resend.dev";
+    
+    const result = await resend.emails.send({
+      from: "BaadFaad <onboarding@resend.dev>",
+      to: [testEmail],
+      subject: "Test Email from BaadFaad",
+      text: "Hello! Resend email setup is working.",
+      html: "<p>Hello! <strong>Resend</strong> email setup is working.</p>",
+    });
+
+    if (result.error) {
+      console.error("Email failed:", result.error.message);
+    } else {
+      console.log("Email sent successfully! ID:", result.data?.id);
+    }
   } catch (err) {
-    console.error("SMTP failed:", err.message);
-  } finally {
-    transporter.close();
+    console.error("Email failed:", err.message);
   }
 }
 
