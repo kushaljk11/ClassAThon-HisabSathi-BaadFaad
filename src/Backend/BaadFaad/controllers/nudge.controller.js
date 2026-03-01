@@ -52,18 +52,23 @@ export const createAndSendNudge = async (req, res) => {
     let status = "sent";
     let errorMessage = null;
     let mailCode = 200;
+    let mailDetails = null;
+    let mailProvider = null;
 
     try {
-      await sendEmail({
+      const mailResult = await sendEmail({
         to: recipientEmail,
         subject: template.subject,
         text: template.text,
         html: template.html,
       });
+      mailProvider = mailResult?.provider || null;
     } catch (mailError) {
       status = "failed";
       errorMessage = mailError?.message || "Mailjet send failed";
       mailCode = mailError?.statusCode || 502;
+      mailDetails = mailError?.details || null;
+      mailProvider = mailError?.provider || null;
     }
 
     const nudge = await Nudge.create({
@@ -85,10 +90,11 @@ export const createAndSendNudge = async (req, res) => {
         success: false,
         delivered: false,
         message: isTimeout
-          ? "Nudge saved, but email sending failed: Mailjet timed out or is unreachable"
-          : `Nudge saved, but email sending failed: ${errorMessage || "Mailjet error"}`,
+          ? "Nudge saved, but email sending failed: provider timed out or is unreachable"
+          : `Nudge saved, but email sending failed: ${errorMessage || "Mail provider error"}`,
         error: errorMessage,
-        details: mailError?.details || null,
+        provider: mailProvider,
+        details: mailDetails,
         nudge,
       });
     }
@@ -97,6 +103,7 @@ export const createAndSendNudge = async (req, res) => {
       success: true,
       delivered: true,
       message: "Nudge sent successfully",
+      provider: mailProvider,
       nudge,
     });
   } catch (error) {

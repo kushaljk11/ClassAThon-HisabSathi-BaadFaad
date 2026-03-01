@@ -38,7 +38,7 @@ const createNudgeTemplate = ({
 }) => {
 	const subject = `Friendly reminder: ${currency} ${amount} pending in ${groupName}`;
 
-	const text = `Hi ${recipientName},\n\nGentle reminder for your pending share in ${groupName} to ${recipientName}.\nPending amount: ${currency} ${amount}\nDue date: ${dueDate}\nPay here: ${payLink}\n\n- BaadFaad`;
+	const text = `Hi ${recipientName},\n\nGentle reminder from ${senderName} for your pending share in ${groupName}.\nPending amount: ${currency} ${amount}\nDue date: ${dueDate}\nPay here: ${payLink}\n\n- BaadFaad`;
 
 	const html = `
 	<div style="background:${BRAND_COLORS.pageBg};padding:24px;font-family:Arial,sans-serif;color:${BRAND_COLORS.textDark};">
@@ -52,7 +52,7 @@ const createNudgeTemplate = ({
 				<td style="padding:24px;line-height:1.6;">
 					<p style="margin:0 0 12px;font-size:16px;">Hi ${recipientName},</p>
 					<p style="margin:0 0 12px;color:${BRAND_COLORS.textMuted};">
-						Gentle reminder for your pending share in <strong>${groupName}</strong> to <strong>${recipientName}</strong>.
+						Gentle reminder from <strong>${senderName}</strong> for your pending share in <strong>${groupName}</strong>.
 					</p>
 					<div style="margin:16px 0;padding:16px;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;">
 						<p style="margin:0;font-size:14px;color:${BRAND_COLORS.textMuted};">Pending Amount</p>

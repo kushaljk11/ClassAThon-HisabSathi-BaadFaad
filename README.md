@@ -101,8 +101,17 @@ Create a `.env` file at the **project root** (or where the backend loads it), us
 | `GOOGLE_CALLBACK_URL`       | OAuth callback URL (e.g. `http://localhost:5000/api/auth/google/callback`)|
 | `GOOGLE_API_KEY`            | Google Gemini API key (for AI bill parsing)                               |
 | `QR_BASE_URL`               | Base URL for join links/QR (e.g. `http://localhost:5173`)                 |
-| `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` | Mailjet API credentials                                         |
-| `MAIL_FROM_EMAIL`          | Verified sender email for Mailjet                                         |
+| `MAIL_PROVIDER`             | `mailjet` or `smtp` (default `mailjet`)                                   |
+| `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` | Mailjet API credentials (if Mailjet is used)                 |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP credentials (if SMTP is used/fallback)   |
+| `SMTP_SECURE`               | `true` for TLS port 465, else `false`                                     |
+| `MAIL_FROM_EMAIL`           | Sender email address used by mail provider                                |
+
+Mail smoke test (from backend folder):
+
+```bash
+npm run mail:test -- you@example.com
+```
 
 **Security:** Do not commit real secrets. Use `.env.example` for structure only; keep production values in a secure env/config store.
 

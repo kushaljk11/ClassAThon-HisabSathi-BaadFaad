@@ -10,10 +10,11 @@
  * @module routes/mail.routes
  */
 import express from "express";
-import { sendTestMail } from "../controllers/mail.controller.js";
+import { getMailHealth, sendTestMail } from "../controllers/mail.controller.js";
 
 const router = express.Router();
 
+router.get("/health", getMailHealth);
 router.post("/send", sendTestMail);
 
 export default router;

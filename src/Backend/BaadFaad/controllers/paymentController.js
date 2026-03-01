@@ -1,6 +1,8 @@
 import Transaction from "../models/payment.models.js";
 import { generateHmacSha256Hash } from "../utils/helper.js";
 import axios from "axios";
+import { sendEmail } from "../config/mail.js";
+import { createPaymentTemplate } from "../templates/payment.templates.js";
 
 const getMissingEnv = (keys) => keys.filter((key) => !process.env[key]);
 const normalizeEnvValue = (value) => {
@@ -18,6 +20,33 @@ const isValidHttpUrl = (value) => {
   } catch {
     return false;
   }
+};
+
+const sendPaymentReceiptEmail = async (transaction) => {
+  const recipient = transaction?.customerDetails?.email;
+  if (!recipient) {
+    return { delivered: false, skipped: true, reason: "No customer email on transaction" };
+  }
+
+  const template = createPaymentTemplate({
+    recipientName: transaction?.customerDetails?.name || "Friend",
+    amount: transaction?.amount || 0,
+    currency: "NPR",
+    groupName: transaction?.product_name || "your split",
+    paidTo: "BaadFaad split",
+    paymentMethod: String(transaction?.payment_gateway || "online").toUpperCase(),
+    paymentDate: new Date().toLocaleString(),
+    transactionId: transaction?.product_id || "N/A",
+  });
+
+  const result = await sendEmail({
+    to: recipient,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+  });
+
+  return { delivered: true, skipped: false, provider: result?.provider || null };
 };
 
 const initiatePayment = async (req, res) => {
@@ -223,9 +252,23 @@ const paymentStatus = async (req, res) => {
           { $set: { status: "COMPLETED", updatedAt: new Date() } }
         );
 
+        let mail = { delivered: false, skipped: true };
+        try {
+          mail = await sendPaymentReceiptEmail(transaction);
+        } catch (mailError) {
+          mail = {
+            delivered: false,
+            skipped: false,
+            error: mailError?.message || "Payment receipt mail failed",
+            code: mailError?.code || null,
+            provider: mailError?.provider || null,
+          };
+        }
+
         return res.status(200).json({
           message: "Transaction status updated successfully",
           status: "COMPLETED",
+          mail,
         });
       } else {
         await Transaction.updateOne(
@@ -272,9 +315,23 @@ const paymentStatus = async (req, res) => {
           { $set: { status: "COMPLETED", updatedAt: new Date() } }
         );
 
+        let mail = { delivered: false, skipped: true };
+        try {
+          mail = await sendPaymentReceiptEmail(transaction);
+        } catch (mailError) {
+          mail = {
+            delivered: false,
+            skipped: false,
+            error: mailError?.message || "Payment receipt mail failed",
+            code: mailError?.code || null,
+            provider: mailError?.provider || null,
+          };
+        }
+
         return res.status(200).json({
           message: "Transaction status updated successfully",
           status: "COMPLETED",
+          mail,
         });
       } else {
         await Transaction.updateOne(
