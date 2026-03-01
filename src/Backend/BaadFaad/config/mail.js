@@ -33,6 +33,33 @@ const buildMailError = (message, { statusCode, code, provider, details } = {}) =
   return err;
 };
 
+const extractMailjetError = (err) => {
+  const statusCode = err?.statusCode || err?.response?.status || err?.response?.statusCode || null;
+  const body = err?.response?.body || {};
+
+  const firstMessageError = body?.Messages?.[0]?.Errors?.[0] || null;
+  const message =
+    firstMessageError?.ErrorMessage ||
+    body?.ErrorMessage ||
+    body?.message ||
+    err?.message ||
+    "Mailjet send failed";
+
+  const isBlocked =
+    Number(statusCode) === 401 &&
+    String(message || "").toLowerCase().includes("temporarily blocked");
+
+  return {
+    statusCode: statusCode || (isBlocked ? 401 : null),
+    message,
+    code: isBlocked ? "MAILJET_ACCOUNT_BLOCKED" : "MAILJET_SEND_FAILED",
+    details: {
+      ...(body || {}),
+      rawMessageError: firstMessageError || null,
+    },
+  };
+};
+
 const withTimeout = async (promise, { timeoutMs = MAIL_SEND_TIMEOUT_MS, provider, operation } = {}) => {
   let timer = null;
 
@@ -190,14 +217,12 @@ const sendViaMailjet = async ({ recipients, subject, text, html, fromEmail, from
     );
     return { provider: PROVIDERS.MAILJET, response: response?.body || response };
   } catch (err) {
-    const statusCode = err?.statusCode || err?.response?.status;
-    const body = err?.response?.body || {};
-    const msg = body?.ErrorMessage || body?.message || err?.message || "Mailjet send failed";
-    throw buildMailError(msg, {
-      statusCode,
-      code: "MAILJET_SEND_FAILED",
+    const parsed = extractMailjetError(err);
+    throw buildMailError(parsed.message, {
+      statusCode: parsed.statusCode,
+      code: parsed.code,
       provider: PROVIDERS.MAILJET,
-      details: body,
+      details: parsed.details,
     });
   }
 };
@@ -286,6 +311,22 @@ export const sendEmail = async ({
 
   const topError = errors[0];
   const providerTrail = errors.map((e) => e?.provider).filter(Boolean);
+
+  if (
+    topError?.code === "MAILJET_ACCOUNT_BLOCKED" &&
+    !hasSmtpCredentials()
+  ) {
+    throw buildMailError(
+      "Mailjet account is temporarily blocked (401). Configure SMTP_* variables or contact Mailjet support.",
+      {
+        statusCode: 401,
+        code: "MAILJET_ACCOUNT_BLOCKED",
+        provider: PROVIDERS.MAILJET,
+        details: topError?.details || null,
+      }
+    );
+  }
+
   throw buildMailError(topError?.message || "Email send failed", {
     statusCode: topError?.statusCode || 502,
     code: topError?.code || "MAIL_SEND_FAILED",
