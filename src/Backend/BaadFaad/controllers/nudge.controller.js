@@ -167,13 +167,8 @@ export const sendSplitSummary = async (req, res) => {
       balanceDue: b.balanceDue || 0,
     }));
 
-    let sent = 0;
-    let failed = 0;
-    const failures = [];
-
-    for (const b of breakdown) {
-      if (!b.email) continue;
-
+    const recipients = breakdown.filter((b) => Boolean(String(b?.email || "").trim()));
+    const jobs = recipients.map(async (b) => {
       const template = createSplitSummaryTemplate({
         recipientName: b.name || "Friend",
         groupName: groupName || "Split",
@@ -186,27 +181,53 @@ export const sendSplitSummary = async (req, res) => {
       });
 
       try {
-        await sendEmail({
+        const result = await sendEmail({
           to: b.email,
           subject: template.subject,
           text: template.text,
           html: template.html,
         });
-        sent++;
-      } catch (mailError) {
-        failed++;
-        failures.push({
+
+        return {
           email: b.email,
-          error: mailError.message,
-          status: mailError?.statusCode,
-        });
+          provider: result?.provider || null,
+        };
+      } catch (mailError) {
+        mailError.details = {
+          ...(mailError?.details || {}),
+          email: b.email,
+        };
+        throw mailError;
       }
+    });
+
+    const settled = await Promise.allSettled(jobs);
+    let sent = 0;
+    let failed = 0;
+    const failures = [];
+
+    for (const item of settled) {
+      if (item.status === "fulfilled") {
+        sent++;
+        continue;
+      }
+
+      failed++;
+      const reason = item.reason || {};
+      failures.push({
+        email: reason?.details?.email || null,
+        error: reason?.message || "Email send failed",
+        status: reason?.statusCode || null,
+        code: reason?.code || null,
+        provider: reason?.provider || null,
+      });
     }
 
     return res.status(failed > 0 ? 207 : 200).json({
       message: failed > 0 ? "Summary emails processed with some failures" : "Summary emails processed",
       sent,
       failed,
+      totalRecipients: recipients.length,
       failures,
     });
   } catch (error) {

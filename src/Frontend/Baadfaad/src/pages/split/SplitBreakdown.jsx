@@ -439,11 +439,17 @@ export default function SplitBreakdown() {
         };
       });
 
-      const res = await api.post("/nudge/split-summary", {
-        groupName: session?.name || session?.session?.name || "Split",
-        totalAmount,
-        breakdown: summaryBreakdown,
-      });
+      const res = await api.post(
+        "/nudge/split-summary",
+        {
+          groupName: session?.name || session?.session?.name || "Split",
+          totalAmount,
+          breakdown: summaryBreakdown,
+        },
+        {
+          timeout: 60000,
+        }
+      );
 
       toast.dismiss(toastId);
 
@@ -467,7 +473,11 @@ export default function SplitBreakdown() {
       }
     } catch (err) {
       toast.dismiss(toastId);
-      toast.error(err.response?.data?.message || "Failed to send notifications", { duration: 4000 });
+      if (err?.code === "ECONNABORTED") {
+        toast.error("Notification request timed out. Emails may still be processing on server.", { duration: 5000 });
+      } else {
+        toast.error(err.response?.data?.message || "Failed to send notifications", { duration: 4000 });
+      }
     } finally {
       setNotifying(false);
     }
